@@ -544,8 +544,26 @@ from(bucket: "{settings.influx_bucket}")
 
     # ---------- Location analytics ----------
 
+    async def _reverse_geocode(self, lat: float, lon: float) -> dict[str, str]:
+        """Reverse geocode via Nominatim (free, no API key). Rate: 1 req/sec."""
+        try:
+            import httpx as _httpx
+            async with _httpx.AsyncClient() as c:
+                r = await c.get(
+                    f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json&accept-language=ko",
+                    headers={"User-Agent": "home-iot/1.0"}, timeout=10.0,
+                )
+                d = r.json()
+                addr = d.get("address", {})
+                name = addr.get("amenity") or addr.get("shop") or addr.get("building") or addr.get("leisure") or ""
+                road = addr.get("road", "")
+                city = addr.get("city") or addr.get("county") or addr.get("town") or ""
+                return {"name": name, "road": road, "city": city, "full": d.get("display_name", "")[:120]}
+        except Exception:
+            return {"name": "", "road": "", "city": "", "full": ""}
+
     async def get_top_visited_places(self, days: int = 90, top_n: int = 15) -> dict[str, Any]:
-        """Aggregate timeline_visit data by place_id, return top N most visited places with visit counts, avg duration, coordinates, and semantic type."""
+        """Aggregate timeline_visit data by place_id, return top N most visited places with visit counts, avg duration, coordinates, semantic type, AND reverse-geocoded address/name."""
         flux = f"""
 from(bucket: "{settings.influx_bucket}")
   |> range(start: -{days}d)
@@ -580,24 +598,39 @@ from(bucket: "{settings.influx_bucket}")
                 p["last_visit"] = t
 
         ranked = sorted(places.items(), key=lambda x: -x[1]["count"])[:top_n]
+
+        # Reverse geocode top places (with rate limiting)
+        import asyncio as _aio
+        result_places = []
+        for i, (pid, info) in enumerate(ranked):
+            geo = {"name": "", "road": "", "city": "", "full": ""}
+            if info["lat"] and info["lon"]:
+                geo = await self._reverse_geocode(info["lat"], info["lon"])
+                if i < top_n - 1:
+                    await _aio.sleep(1.05)  # Nominatim: max 1 req/sec
+
+            place_name = geo["name"] or info["semantic_type"] or f"Place {i+1}"
+            result_places.append({
+                "rank": i + 1,
+                "place_id": pid,
+                "name": place_name,
+                "address": geo["full"],
+                "road": geo["road"],
+                "city": geo["city"],
+                "visits": info["count"],
+                "avg_duration_min": round(info["total_duration"] / info["count"], 1) if info["count"] > 0 else 0,
+                "total_hours": round(info["total_duration"] / 60, 1),
+                "lat": info["lat"],
+                "lon": info["lon"],
+                "semantic_type": info["semantic_type"],
+                "last_visit": info["last_visit"],
+            })
+
         return {
             "days": days,
             "total_unique_places": len(places),
             "total_visits": sum(p["count"] for p in places.values()),
-            "top_places": [
-                {
-                    "rank": i + 1,
-                    "place_id": pid,
-                    "visits": info["count"],
-                    "avg_duration_min": round(info["total_duration"] / info["count"], 1) if info["count"] > 0 else 0,
-                    "total_hours": round(info["total_duration"] / 60, 1),
-                    "lat": info["lat"],
-                    "lon": info["lon"],
-                    "semantic_type": info["semantic_type"],
-                    "last_visit": info["last_visit"],
-                }
-                for i, (pid, info) in enumerate(ranked)
-            ],
+            "top_places": result_places,
         }
 
     async def get_location_trail(self, days: int = 7, max_points: int = 500) -> dict[str, Any]:
