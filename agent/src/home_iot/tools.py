@@ -158,6 +158,43 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             },
         },
     },
+    # ---- Location analytics ----
+    {
+        "type": "function",
+        "function": {
+            "name": "get_top_visited_places",
+            "description": (
+                "Aggregate timeline_visit data: returns top N most-visited places with visit count, "
+                "average stay duration, total hours, GPS coordinates, semantic_type (INFERRED_HOME, etc.), "
+                "and last visit time. Use for 'where do I go most?' questions."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "days": {"type": "integer", "description": "Look-back window in days.", "default": 90},
+                    "top_n": {"type": "integer", "description": "Top N places.", "default": 15},
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_location_trail",
+            "description": (
+                "Get GPS breadcrumb trail from timeline_gps for map visualization. "
+                "Returns lat/lon/time arrays. Use with create_map(path=...) for route visualization, "
+                "or create_map(heatmap=...) for density maps."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "days": {"type": "integer", "description": "Look-back window.", "default": 7},
+                    "max_points": {"type": "integer", "description": "Max GPS points to return.", "default": 500},
+                },
+            },
+        },
+    },
     # ---- Home context + knowledge base ----
     {
         "type": "function",
@@ -504,6 +541,100 @@ from(bucket: "{settings.influx_bucket}")
                 for r in rows
             ],
         }
+
+    # ---------- Location analytics ----------
+
+    async def get_top_visited_places(self, days: int = 90, top_n: int = 15) -> dict[str, Any]:
+        """Aggregate timeline_visit data by place_id, return top N most visited places with visit counts, avg duration, coordinates, and semantic type."""
+        flux = f"""
+from(bucket: "{settings.influx_bucket}")
+  |> range(start: -{days}d)
+  |> filter(fn: (r) => r._measurement == "timeline_visit")
+  |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
+  |> keep(columns: ["_time", "place_id", "latitude", "longitude", "duration_min", "probability", "semantic_type"])
+"""
+        rows = await self._run_flux(flux)
+
+        from collections import defaultdict
+        places: dict[str, dict] = defaultdict(lambda: {"count": 0, "total_duration": 0.0, "lat": None, "lon": None, "semantic_type": "", "last_visit": ""})
+
+        for r in rows:
+            pid = r.get("place_id") or r.get("value")
+            if not pid or pid == "":
+                continue
+            p = places[pid]
+            p["count"] += 1
+            dur = r.get("duration_min")
+            if dur and isinstance(dur, (int, float)):
+                p["total_duration"] += float(dur)
+            lat = r.get("latitude")
+            lon = r.get("longitude")
+            if lat and lon:
+                p["lat"] = float(lat)
+                p["lon"] = float(lon)
+            st = r.get("semantic_type")
+            if st:
+                p["semantic_type"] = st
+            t = r.get("time")
+            if t and t > p["last_visit"]:
+                p["last_visit"] = t
+
+        ranked = sorted(places.items(), key=lambda x: -x[1]["count"])[:top_n]
+        return {
+            "days": days,
+            "total_unique_places": len(places),
+            "total_visits": sum(p["count"] for p in places.values()),
+            "top_places": [
+                {
+                    "rank": i + 1,
+                    "place_id": pid,
+                    "visits": info["count"],
+                    "avg_duration_min": round(info["total_duration"] / info["count"], 1) if info["count"] > 0 else 0,
+                    "total_hours": round(info["total_duration"] / 60, 1),
+                    "lat": info["lat"],
+                    "lon": info["lon"],
+                    "semantic_type": info["semantic_type"],
+                    "last_visit": info["last_visit"],
+                }
+                for i, (pid, info) in enumerate(ranked)
+            ],
+        }
+
+    async def get_location_trail(self, days: int = 7, max_points: int = 500) -> dict[str, Any]:
+        """Get GPS trail points from timeline_gps for map visualization."""
+        flux = f"""
+from(bucket: "{settings.influx_bucket}")
+  |> range(start: -{days}d)
+  |> filter(fn: (r) => r._measurement == "timeline_gps" and r._field == "latitude")
+  |> keep(columns: ["_time", "_value"])
+  |> sort(columns: ["_time"])
+  |> limit(n: {max_points * 2})
+"""
+        lat_rows = await self._run_flux(flux)
+
+        flux_lon = f"""
+from(bucket: "{settings.influx_bucket}")
+  |> range(start: -{days}d)
+  |> filter(fn: (r) => r._measurement == "timeline_gps" and r._field == "longitude")
+  |> keep(columns: ["_time", "_value"])
+  |> sort(columns: ["_time"])
+  |> limit(n: {max_points * 2})
+"""
+        lon_rows = await self._run_flux(flux_lon)
+
+        # Match by timestamp
+        lon_map = {r["time"]: r["value"] for r in lon_rows if r.get("time")}
+        points = []
+        for r in lat_rows:
+            t = r.get("time")
+            lat = r.get("value")
+            lon = lon_map.get(t)
+            if lat and lon and t:
+                points.append({"lat": float(lat), "lon": float(lon), "time": t})
+                if len(points) >= max_points:
+                    break
+
+        return {"days": days, "point_count": len(points), "points": points}
 
     # ---------- 집 컨텍스트 ----------
     # ---- YAML 읽기/쓰기 헬퍼 ----
