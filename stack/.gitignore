@@ -1,0 +1,15 @@
+homeassistant/config/
+mosquitto/data/
+mosquitto/log/
+influxdb/data/
+influxdb/config/
+grafana/data/
+ollama/data/
+*.secret
+.env
+
+# HA secrets
+homeassistant/config/secrets.yaml
+homeassistant/config/.storage/
+homeassistant/config/*.log*
+homeassistant/config/home-assistant_v2.db*

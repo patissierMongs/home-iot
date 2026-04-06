@@ -1,0 +1,103 @@
+{
+  "title": "Correlations — Health × Sleep × Environment",
+  "uid": "home-iot-correlations",
+  "tags": ["home-iot", "analysis"],
+  "timezone": "Asia/Seoul",
+  "schemaVersion": 39,
+  "refresh": "5m",
+  "time": {"from": "now-30d", "to": "now"},
+  "panels": [
+    {
+      "id": 1,
+      "type": "heatmap",
+      "title": "Heart Rate Distribution by Hour (30d)",
+      "description": "시간대별 심박수 분포 — 밤에 낮고 낮에 높으면 정상, 밤에도 높으면 수면 스트레스 의심",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "datasource": {"type": "influxdb", "uid": "influxdb"},
+      "options": {"calculate": true, "calculation": {"xBuckets": {"mode": "count", "value": "24"}, "yBuckets": {"mode": "count", "value": "20"}}, "color": {"mode": "scheme", "scheme": "Oranges"}, "cellGap": 1, "yAxis": {"unit": "bpm"}},
+      "targets": [{"refId": "A", "datasource": {"type": "influxdb", "uid": "influxdb"},
+        "query": "from(bucket:\"home-iot\") |> range(start:-30d) |> filter(fn:(r)=>r._measurement==\"bpm\" and r.entity_id==\"galaxynote4_heart_rate\" and r._field==\"value\") |> keep(columns:[\"_time\",\"_value\"])"}]
+    },
+    {
+      "id": 2,
+      "type": "heatmap",
+      "title": "Room Humidity by Hour (30d)",
+      "description": "시간대별 습도 분포 — 샤워 시간대, 제습기 패턴 시각화",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "datasource": {"type": "influxdb", "uid": "influxdb"},
+      "options": {"calculate": true, "calculation": {"xBuckets": {"mode": "count", "value": "24"}, "yBuckets": {"mode": "count", "value": "15"}}, "color": {"mode": "scheme", "scheme": "Blues"}, "cellGap": 1, "yAxis": {"unit": "humidity"}},
+      "targets": [{"refId": "A", "datasource": {"type": "influxdb", "uid": "influxdb"},
+        "query": "from(bucket:\"home-iot\") |> range(start:-30d) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"jeseubgi_humidity\" and r._field==\"value\") |> aggregateWindow(every:15m,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"])"}]
+    },
+    {
+      "id": 3,
+      "type": "heatmap",
+      "title": "Room Temperature by Hour (30d)",
+      "description": "시간대별 온도 분포 — 밤 온도 패턴 → 수면 질 연관",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "datasource": {"type": "influxdb", "uid": "influxdb"},
+      "options": {"calculate": true, "calculation": {"xBuckets": {"mode": "count", "value": "24"}, "yBuckets": {"mode": "count", "value": "15"}}, "color": {"mode": "scheme", "scheme": "RdYlGn", "reverse": true}, "cellGap": 1, "yAxis": {"unit": "celsius"}},
+      "targets": [{"refId": "A", "datasource": {"type": "influxdb", "uid": "influxdb"},
+        "query": "from(bucket:\"home-iot\") |> range(start:-30d) |> filter(fn:(r)=>r._measurement==\"°C\" and r.entity_id==\"keompyuteo_onseubdo_temperature\" and r._field==\"value\") |> aggregateWindow(every:15m,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"])"}]
+    },
+    {
+      "id": 4,
+      "type": "heatmap",
+      "title": "Sleep Hours by Day-of-Week (12mo, SaA)",
+      "description": "요일별 수면 시간 분포 — 평일 vs 주말 패턴",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "datasource": {"type": "influxdb", "uid": "influxdb"},
+      "options": {"calculate": true, "calculation": {"xBuckets": {"mode": "count", "value": "7"}, "yBuckets": {"mode": "count", "value": "12"}}, "color": {"mode": "scheme", "scheme": "Purples"}, "cellGap": 1, "yAxis": {"unit": "h"}},
+      "targets": [{"refId": "A", "datasource": {"type": "influxdb", "uid": "influxdb"},
+        "query": "from(bucket:\"home-iot\") |> range(start:-365d) |> filter(fn:(r)=>r._measurement==\"sleep_session\" and r._field==\"hours\" and r._value >= 0) |> keep(columns:[\"_time\",\"_value\"])"}]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Overlay: Sleep Hours + Avg Humidity + Avg Temp (30d daily)",
+      "description": "수면 시간과 환경 변수를 동시에 보기 — 상관관계 시각 탐색",
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 16},
+      "datasource": {"type": "influxdb", "uid": "influxdb"},
+      "fieldConfig": {
+        "defaults": {"custom": {"drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "showPoints": "auto", "pointSize": 4}},
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "Sleep h"}, "properties": [{"id": "custom.drawStyle", "value": "bars"}, {"id": "custom.fillOpacity", "value": 60}, {"id": "unit", "value": "h"}, {"id": "color", "value": {"mode": "fixed", "fixedColor": "purple"}}]},
+          {"matcher": {"id": "byName", "options": "Humidity %"}, "properties": [{"id": "custom.axisPlacement", "value": "right"}, {"id": "unit", "value": "humidity"}, {"id": "color", "value": {"mode": "fixed", "fixedColor": "blue"}}]},
+          {"matcher": {"id": "byName", "options": "Temp °C"}, "properties": [{"id": "custom.axisPlacement", "value": "right"}, {"id": "unit", "value": "celsius"}, {"id": "color", "value": {"mode": "fixed", "fixedColor": "orange"}}]}
+        ]
+      },
+      "targets": [
+        {"refId": "A", "datasource": {"type": "influxdb", "uid": "influxdb"},
+         "query": "from(bucket:\"home-iot\") |> range(start:-30d) |> filter(fn:(r)=>r._measurement==\"sleep_session\" and r._field==\"hours\" and r._value>=0) |> timeShift(duration:-12h) |> aggregateWindow(every:1d,fn:sum,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"Sleep h\")"},
+        {"refId": "B", "datasource": {"type": "influxdb", "uid": "influxdb"},
+         "query": "from(bucket:\"home-iot\") |> range(start:-30d) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"jeseubgi_humidity\" and r._field==\"value\") |> aggregateWindow(every:1d,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"Humidity %\")"},
+        {"refId": "C", "datasource": {"type": "influxdb", "uid": "influxdb"},
+         "query": "from(bucket:\"home-iot\") |> range(start:-30d) |> filter(fn:(r)=>r._measurement==\"°C\" and r.entity_id==\"keompyuteo_onseubdo_temperature\" and r._field==\"value\") |> aggregateWindow(every:1d,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"Temp °C\")"}
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Overlay: Heart Rate + Steps + Sleep (7d)",
+      "description": "심박 + 걸음 + 수면을 같이 보기 — 운동 후 수면 질 변화 관찰",
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 26},
+      "datasource": {"type": "influxdb", "uid": "influxdb"},
+      "fieldConfig": {
+        "defaults": {"custom": {"drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "showPoints": "auto"}},
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "HR bpm"}, "properties": [{"id": "unit", "value": "bpm"}, {"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]},
+          {"matcher": {"id": "byName", "options": "Steps"}, "properties": [{"id": "custom.axisPlacement", "value": "right"}, {"id": "custom.drawStyle", "value": "bars"}, {"id": "custom.fillOpacity", "value": 40}, {"id": "color", "value": {"mode": "fixed", "fixedColor": "green"}}]},
+          {"matcher": {"id": "byName", "options": "Sleep h"}, "properties": [{"id": "custom.axisPlacement", "value": "right"}, {"id": "custom.drawStyle", "value": "bars"}, {"id": "custom.fillOpacity", "value": 60}, {"id": "unit", "value": "h"}, {"id": "color", "value": {"mode": "fixed", "fixedColor": "purple"}}]}
+        ]
+      },
+      "targets": [
+        {"refId": "A", "datasource": {"type": "influxdb", "uid": "influxdb"},
+         "query": "from(bucket:\"home-iot\") |> range(start:-7d) |> filter(fn:(r)=>r._measurement==\"bpm\" and r.entity_id==\"galaxynote4_heart_rate\" and r._field==\"value\") |> aggregateWindow(every:1h,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"HR bpm\")"},
+        {"refId": "B", "datasource": {"type": "influxdb", "uid": "influxdb"},
+         "query": "from(bucket:\"home-iot\") |> range(start:-7d) |> filter(fn:(r)=>r._measurement==\"steps\" and r.entity_id==\"galaxynote4_daily_steps\" and r._field==\"value\") |> aggregateWindow(every:1d,fn:max,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"Steps\")"},
+        {"refId": "C", "datasource": {"type": "influxdb", "uid": "influxdb"},
+         "query": "from(bucket:\"home-iot\") |> range(start:-7d) |> filter(fn:(r)=>r._measurement==\"sleep_session\" and r._field==\"hours\" and r._value>=0) |> timeShift(duration:-12h) |> aggregateWindow(every:1d,fn:sum,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"Sleep h\")"}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+# ============================================================================
+# Pending question queue — things the agent wants to ask the user
+#
+# Copy to open_questions.yaml. Agent adds questions via add_open_question(),
+# user answers via answer_question() which moves them to home_knowledge.
+# ============================================================================
+
+metadata:
+  created: "2026-01-01"
+  last_updated: "2026-01-01"
+
+questions: []

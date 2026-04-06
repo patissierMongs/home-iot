@@ -1,0 +1,45 @@
+# Example automations — replace entity_ids with yours
+
+- id: wake_alarm
+  alias: "Wake - Alarm sound -> open curtain"
+  trigger:
+    - platform: mqtt
+      topic: "SleepAsAndroid/#"
+      value_template: "{{ value_json.event | default('') }}"
+      payload: "alarm_alert_start"
+  action:
+    - service: cover.open_cover
+      target:
+        entity_id: cover.your_curtain
+    - service: light.turn_on
+      target:
+        entity_id: light.your_main
+      data:
+        brightness_pct: 50
+        transition: 120
+
+- id: front_door_alert
+  alias: "Front door open > 10min"
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.your_front_door
+      to: "on"
+      for: "00:10:00"
+  action:
+    - service: persistent_notification.create
+      data:
+        title: "Door open"
+        message: "Front door open 10+ minutes"
+
+- id: log_sleep_events
+  alias: "Log Sleep as Android events"
+  mode: parallel
+  max: 20
+  trigger:
+    - platform: mqtt
+      topic: "SleepAsAndroid/#"
+  action:
+    - service: logbook.log
+      data:
+        name: "Sleep as Android"
+        message: "{{ trigger.payload_json.event | default('unknown') }}"

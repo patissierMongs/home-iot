@@ -1,0 +1,45 @@
+# === Secrets & credentials ===
+.env
+*.secret
+secrets.ps1
+
+# === Data directories (large, personal) ===
+stack/homeassistant/config/
+stack/mosquitto/data/
+stack/mosquitto/log/
+stack/influxdb/data/
+stack/influxdb/config/
+stack/grafana/data/
+stack/ollama/data/
+
+# === Agent personal config (templates provided as .example) ===
+agent/.env
+agent/config/home_layout.yaml
+agent/config/home_knowledge.yaml
+agent/config/open_questions.yaml
+
+# === Desktop audio player secrets ===
+desktop-audio-player/secrets.ps1
+desktop-audio-player/.venv/
+desktop-audio-player/__pycache__/
+
+# === Python ===
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+dist/
+build/
+
+# === Reference (legacy code, optional to include) ===
+# reference/  # uncomment to exclude
+
+# === OS ===
+.DS_Store
+Thumbs.db
+
+# === IDE ===
+.idea/
+.vscode/
+*.swp

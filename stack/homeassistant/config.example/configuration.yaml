@@ -1,0 +1,25 @@
+default_config:
+
+frontend:
+  themes: !include_dir_merge_named themes
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+rest_command:
+  st_dehumidifier_set_mode:
+    url: "https://api.smartthings.com/v1/devices/YOUR_DEVICE_ID/commands"
+    method: POST
+    headers:
+      Authorization: !secret smartthings_authorization
+      Content-Type: application/json
+    payload: '{"commands":[{"component":"main","capability":"samsungce.dehumidifierMode","command":"setDehumidifierMode","arguments":["{{ mode }}"]}]}'
+
+  st_execute:
+    url: "https://api.smartthings.com/v1/devices/{{ device_id }}/commands"
+    method: POST
+    headers:
+      Authorization: !secret smartthings_authorization
+      Content-Type: application/json
+    payload: '{{ payload }}'

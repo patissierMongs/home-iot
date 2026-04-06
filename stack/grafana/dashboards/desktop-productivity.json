@@ -1,0 +1,347 @@
+{
+  "title": "Desktop & Productivity",
+  "uid": "home-iot-desktop",
+  "tags": [
+    "home-iot",
+    "desktop"
+  ],
+  "timezone": "Asia/Seoul",
+  "schemaVersion": 39,
+  "refresh": "10s",
+  "time": {
+    "from": "now-12h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "CPU",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 60
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-6h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"yuyu_cpuload_2\" and r._field==\"value\") |> last()"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "GPU",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 50
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-6h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"yuyu_gpuload_2\" and r._field==\"value\") |> last()"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Memory",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-6h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"yuyu_memoryusage_2\" and r._field==\"value\") |> last()"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "현재 활성 앱",
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          }
+        }
+      },
+      "options": {
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-5m) |> filter(fn:(r)=>r._measurement==\"sensor.yuyu_activewindow\" and r._field==\"value\") |> last()"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "CPU / GPU / Memory (12h)",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 15,
+            "showPoints": "never"
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-12h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"yuyu_cpuload_2\" and r._field==\"value\") |> aggregateWindow(every:1m,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"CPU\")"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-12h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"yuyu_gpuload_2\" and r._field==\"value\") |> aggregateWindow(every:1m,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"GPU\")"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-12h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"yuyu_memoryusage_2\" and r._field==\"value\") |> aggregateWindow(every:1m,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"RAM\")"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "type": "barchart",
+      "title": "앱별 사용 시간 (오늘, ActivityWatch)",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "fillOpacity": 80
+          }
+        }
+      },
+      "options": {
+        "orientation": "horizontal"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-24h) |> filter(fn:(r)=>r._measurement==\"activity_window\" and r._field==\"duration_s\") |> group(columns:[\"app\"]) |> sum() |> group() |> sort(columns:[\"_value\"],desc:true) |> limit(n:15)"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "AFK 상태 (12h)",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 0
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-12h) |> filter(fn:(r)=>r._measurement==\"activity_afk\" and r._field==\"duration_s\" and r.status==\"not-afk\") |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"active\")"
+        }
+      ]
+    }
+  ]
+}

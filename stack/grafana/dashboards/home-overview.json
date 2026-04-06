@@ -1,0 +1,462 @@
+{
+  "title": "Home Overview",
+  "uid": "home-iot-overview",
+  "tags": [
+    "home-iot"
+  ],
+  "timezone": "Asia/Seoul",
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "PC방 온도",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "decimals": 1,
+          "thresholds": {
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 20
+              },
+              {
+                "color": "orange",
+                "value": 28
+              },
+              {
+                "color": "red",
+                "value": 32
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-6h) |> filter(fn:(r)=>r._measurement==\"°C\" and r.entity_id==\"keompyuteo_onseubdo_temperature\" and r._field==\"value\") |> last()"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "침대 온도",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "decimals": 1,
+          "thresholds": {
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 20
+              },
+              {
+                "color": "orange",
+                "value": 28
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-6h) |> filter(fn:(r)=>r._measurement==\"°C\" and r.entity_id==\"cimdaeonseubdo_temperature\" and r._field==\"value\") |> last()"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "화장실 온도",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "decimals": 1,
+          "thresholds": {
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 20
+              },
+              {
+                "color": "orange",
+                "value": 28
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-6h) |> filter(fn:(r)=>r._measurement==\"°C\" and r.entity_id==\"hwajangsil_onseubdo_temperature\" and r._field==\"value\") |> last()"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "제습기 습도",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "humidity",
+          "decimals": 1,
+          "thresholds": {
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 30
+              },
+              {
+                "color": "green",
+                "value": 45
+              },
+              {
+                "color": "orange",
+                "value": 60
+              },
+              {
+                "color": "red",
+                "value": 70
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-6h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"jeseubgi_humidity\" and r._field==\"value\") |> last()"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "FP300 조도",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lux",
+          "decimals": 1,
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-6h) |> filter(fn:(r)=>r._measurement==\"lx\" and r.entity_id==\"presence_multi_sensor_fp300_illuminance\" and r._field==\"value\") |> last()"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "제습기 전력",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "decimals": 1,
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-6h) |> filter(fn:(r)=>r._measurement==\"W\" and r.entity_id==\"jeseubgi_power\" and r._field==\"value\") |> last()"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "온도 추이 (전 센서, 24h)",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-24h) |> filter(fn:(r)=>r._measurement==\"°C\" and r.entity_id==\"keompyuteo_onseubdo_temperature\" and r._field==\"value\") |> aggregateWindow(every:5m,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"PC방\")"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-24h) |> filter(fn:(r)=>r._measurement==\"°C\" and r.entity_id==\"cimdaeonseubdo_temperature\" and r._field==\"value\") |> aggregateWindow(every:5m,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"침대\")"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-24h) |> filter(fn:(r)=>r._measurement==\"°C\" and r.entity_id==\"hwajangsil_onseubdo_temperature\" and r._field==\"value\") |> aggregateWindow(every:5m,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"화장실\")"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-24h) |> filter(fn:(r)=>r._measurement==\"°C\" and r.entity_id==\"presence_multi_sensor_fp300_temperature\" and r._field==\"value\") |> aggregateWindow(every:5m,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"FP300\")"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "습도 추이 (전 센서, 24h)",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "humidity",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-24h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"keompyuteo_onseubdo_humidity\" and r._field==\"value\") |> aggregateWindow(every:5m,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"PC방\")"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-24h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"cimdaeonseubdo_humidity\" and r._field==\"value\") |> aggregateWindow(every:5m,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"침대\")"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-24h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"hwajangsil_onseubdo_humidity\" and r._field==\"value\") |> aggregateWindow(every:5m,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"화장실\")"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
+          "query": "from(bucket:\"home-iot\") |> range(start:-24h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"jeseubgi_humidity\" and r._field==\"value\") |> aggregateWindow(every:5m,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"제습기\")"
+        }
+      ]
+    }
+  ]
+}

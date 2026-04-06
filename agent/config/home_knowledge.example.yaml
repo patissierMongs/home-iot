@@ -1,0 +1,21 @@
+# ============================================================================
+# home-iot knowledge base — agent-accumulated learning
+#
+# Copy this to home_knowledge.yaml. The agent will populate it over time
+# via record_observation, update_entity_dictionary, record_preference, etc.
+# ============================================================================
+
+metadata:
+  created: "2026-01-01"
+  last_updated: "2026-01-01"
+  schema_version: 1
+  notes: |
+    Confidence scale: 0.0 (guess) to 1.0 (directly confirmed by user).
+    Sources: user | observed | inferred | imported.
+
+entity_dictionary: {}
+observations: []
+preferences: {}
+patterns: []
+lessons: []
+design_intents: []

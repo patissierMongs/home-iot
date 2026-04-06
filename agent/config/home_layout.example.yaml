@@ -1,0 +1,101 @@
+# ============================================================================
+# home-iot: Home layout — user-edited semantic map + operational knowledge
+#
+# Copy this to home_layout.yaml and customize for your home.
+# The agent reads this via get_home_context() to understand your space.
+# ============================================================================
+
+home:
+  type: "apartment"  # apartment, house, studio, etc.
+  location: "Your city"
+  occupants:
+    - name: "User"
+      role: "sole occupant"
+      work_pattern: "desk-based work + gaming"
+      sleep_pattern: "variable"
+
+zones:
+  desk:
+    description: "Work/gaming desk area"
+    devices:
+      lights:
+        - entity: switch.your_desk_light
+          name: "Desk light"
+          role: "primary task light"
+      sensors:
+        temperature: sensor.desk_temperature
+        humidity: sensor.desk_humidity
+
+  bed:
+    description: "Sleep area"
+    devices:
+      sensors:
+        presence: binary_sensor.bed_presence
+        temperature: sensor.bed_temperature
+
+  bathroom:
+    description: "Bathroom"
+    devices:
+      sensors:
+        door: binary_sensor.bathroom_door
+        humidity: sensor.bathroom_humidity
+
+  entry:
+    description: "Entry/front door"
+    devices:
+      sensors:
+        door: binary_sensor.front_door
+
+  ambient:
+    description: "General room area"
+    devices:
+      lights:
+        - entity: light.main_light
+          name: "Main light"
+      covers:
+        - entity: cover.curtain
+          name: "Motorized curtain"
+      appliances:
+        - entity: switch.dehumidifier
+          name: "Dehumidifier"
+
+device_notes:
+  # Add quirks and known issues for specific devices
+  # cover.curtain:
+  #   status: "unstable state reporting"
+  #   workaround: "use set_cover_position instead of open/close"
+
+habits:
+  sleep:
+    typical_bedtime: "23:00 ~ 01:00"
+    typical_wake: "07:00 ~ 09:00"
+  work:
+    tools: ["VSCode", "Terminal", "Browser"]
+  environment:
+    humidity_preference: 50
+
+safety_boundaries:
+  autonomous_allowed:
+    - "light on/off/brightness/color"
+    - "dehumidifier on/off within hysteresis"
+    - "curtain position adjust"
+  require_approval:
+    - "door lock/unlock"
+    - "fingerbot triggers"
+    - "large-scale device off"
+  never:
+    - "modify user access permissions"
+    - "delete automation rules"
+
+data_sources:
+  realtime_state:
+    description: "Current state via ha_get_state / ha_list_entities"
+  timeseries:
+    description: "Historical data via query_influx"
+    notable_measurements:
+      - sleep_session
+      - activity_window
+      - samsung_hr
+      - samsung_stress
+      - cpu
+      - nvidia_smi

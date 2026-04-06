@@ -1,0 +1,156 @@
+{
+  "title": "Sleep",
+  "uid": "home-iot-sleep",
+  "tags": ["home-iot", "sleep"],
+  "timezone": "Asia/Seoul",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5m",
+  "time": {"from": "now-90d", "to": "now"},
+  "templating": {"list": []},
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "총 수면 세션",
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+      "datasource": {"type": "influxdb", "uid": "influxdb"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "unit": "short"}, "overrides": []},
+      "options": {"graphMode": "none", "reduceOptions": {"calcs": ["last"], "fields": "", "values": false}, "textMode": "value"},
+      "targets": [{
+        "refId": "A",
+        "datasource": {"type": "influxdb", "uid": "influxdb"},
+        "query": "from(bucket: \"home-iot\") |> range(start: -500d) |> filter(fn: (r) => r._measurement == \"sleep_session\" and r._field == \"hours\") |> group() |> count()"
+      }]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "최근 7일 일평균 (일별 총합)",
+      "gridPos": {"h": 4, "w": 5, "x": 4, "y": 0},
+      "datasource": {"type": "influxdb", "uid": "influxdb"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "unit": "h", "decimals": 2}, "overrides": []},
+      "options": {"graphMode": "area", "reduceOptions": {"calcs": ["mean"], "fields": "", "values": false}, "textMode": "value_and_name"},
+      "targets": [{
+        "refId": "A",
+        "datasource": {"type": "influxdb", "uid": "influxdb"},
+        "query": "from(bucket: \"home-iot\") |> range(start: -7d) |> filter(fn: (r) => r._measurement == \"sleep_session\" and r._field == \"hours\" and r._value >= 0.0) |> timeShift(duration: -12h) |> group() |> aggregateWindow(every: 1d, fn: sum, createEmpty: false) |> filter(fn: (r) => r._value > 0.0) |> mean()"
+      }]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "최근 30일 일평균 (일별 총합)",
+      "gridPos": {"h": 4, "w": 5, "x": 9, "y": 0},
+      "datasource": {"type": "influxdb", "uid": "influxdb"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "unit": "h", "decimals": 2}, "overrides": []},
+      "options": {"graphMode": "area", "reduceOptions": {"calcs": ["mean"], "fields": "", "values": false}, "textMode": "value_and_name"},
+      "targets": [{
+        "refId": "A",
+        "datasource": {"type": "influxdb", "uid": "influxdb"},
+        "query": "from(bucket: \"home-iot\") |> range(start: -30d) |> filter(fn: (r) => r._measurement == \"sleep_session\" and r._field == \"hours\" and r._value >= 0.0) |> timeShift(duration: -12h) |> group() |> aggregateWindow(every: 1d, fn: sum, createEmpty: false) |> filter(fn: (r) => r._value > 0.0) |> mean()"
+      }]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "최근 30일 Deep Sleep 비율",
+      "gridPos": {"h": 4, "w": 5, "x": 14, "y": 0},
+      "datasource": {"type": "influxdb", "uid": "influxdb"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "unit": "percentunit", "decimals": 2}, "overrides": []},
+      "options": {"graphMode": "area", "reduceOptions": {"calcs": ["mean"], "fields": "", "values": false}, "textMode": "value_and_name"},
+      "targets": [{
+        "refId": "A",
+        "datasource": {"type": "influxdb", "uid": "influxdb"},
+        "query": "from(bucket: \"home-iot\") |> range(start: -30d) |> filter(fn: (r) => r._measurement == \"sleep_session\" and r._field == \"deep_sleep\") |> group() |> mean()"
+      }]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "수면 시간 (12개월)",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 4},
+      "datasource": {"type": "influxdb", "uid": "influxdb"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "bars", "lineWidth": 1, "fillOpacity": 80, "pointSize": 5, "showPoints": "auto", "spanNulls": false},
+          "unit": "h",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {"tooltip": {"mode": "single"}, "legend": {"displayMode": "hidden"}},
+      "targets": [{
+        "refId": "A",
+        "datasource": {"type": "influxdb", "uid": "influxdb"},
+        "query": "from(bucket: \"home-iot\") |> range(start: -400d) |> filter(fn: (r) => r._measurement == \"sleep_session\" and r._field == \"hours\") |> group() |> keep(columns: [\"_time\", \"_value\"])"
+      }]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Deep Sleep 비율 (12개월, 7일 이동평균)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+      "datasource": {"type": "influxdb", "uid": "influxdb"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "line", "lineWidth": 2, "fillOpacity": 15, "pointSize": 3, "showPoints": "never"},
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {"tooltip": {"mode": "single"}, "legend": {"displayMode": "list"}},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "influxdb"},
+          "query": "from(bucket: \"home-iot\") |> range(start: -400d) |> filter(fn: (r) => r._measurement == \"sleep_session\" and r._field == \"deep_sleep\") |> group() |> sort(columns: [\"_time\"]) |> movingAverage(n: 7) |> keep(columns: [\"_time\", \"_value\"])"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "수면 사이클 수 (12개월)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+      "datasource": {"type": "influxdb", "uid": "influxdb"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "points", "lineWidth": 0, "pointSize": 4, "showPoints": "always"},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {"tooltip": {"mode": "single"}, "legend": {"displayMode": "hidden"}},
+      "targets": [{
+        "refId": "A",
+        "datasource": {"type": "influxdb", "uid": "influxdb"},
+        "query": "from(bucket: \"home-iot\") |> range(start: -400d) |> filter(fn: (r) => r._measurement == \"sleep_session\" and r._field == \"cycles\") |> group() |> keep(columns: [\"_time\", \"_value\"])"
+      }]
+    },
+    {
+      "id": 20,
+      "type": "timeseries",
+      "title": "Actigraphy 활동량 — 최근 수면 세션",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 20},
+      "datasource": {"type": "influxdb", "uid": "influxdb"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "line", "lineWidth": 1, "fillOpacity": 30, "pointSize": 2, "showPoints": "never"},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {"tooltip": {"mode": "single"}, "legend": {"displayMode": "hidden"}},
+      "targets": [{
+        "refId": "A",
+        "datasource": {"type": "influxdb", "uid": "influxdb"},
+        "query": "from(bucket: \"home-iot\") |> range(start: -3d) |> filter(fn: (r) => r._measurement == \"sleep_actigraphy\" and r._field == \"activity\") |> group() |> sort(columns: [\"_time\"]) |> keep(columns: [\"_time\", \"_value\"])"
+      }]
+    }
+  ]
+}
