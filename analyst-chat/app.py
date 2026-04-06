@@ -137,25 +137,134 @@ def _build_plotly_spec(params: dict[str, Any]) -> dict[str, Any]:
 
 
 class AnalystTools(Tools):
-    """Extends the base Tools with create_chart for the analyst UI."""
+    """Extends the base Tools with visualization tools for the analyst UI."""
 
     def __init__(self, ha: HAClient):
         super().__init__(ha)
         self._last_chart: dict | None = None
+        self._last_map: dict | None = None
+        self._last_timeline: dict | None = None
 
     async def create_chart(self, **kwargs) -> dict[str, Any]:
         spec = _build_plotly_spec(kwargs)
         self._last_chart = spec
         return {"status": "chart_created", "title": kwargs.get("title", ""), "points": len(kwargs.get("x", []))}
 
-    def pop_chart(self) -> dict | None:
-        c = self._last_chart
-        self._last_chart = None
-        return c
+    async def create_map(self, **kwargs) -> dict[str, Any]:
+        self._last_map = kwargs
+        n_markers = len(kwargs.get("markers", []))
+        n_path = len(kwargs.get("path", []))
+        n_heat = len(kwargs.get("heatmap", []))
+        return {"status": "map_created", "markers": n_markers, "path_points": n_path, "heatmap_points": n_heat}
 
+    async def create_timeline(self, **kwargs) -> dict[str, Any]:
+        self._last_timeline = kwargs
+        return {"status": "timeline_created", "events": len(kwargs.get("events", []))}
+
+    def pop_visuals(self) -> tuple[dict | None, dict | None, dict | None]:
+        chart, mp, tl = self._last_chart, self._last_map, self._last_timeline
+        self._last_chart = self._last_map = self._last_timeline = None
+        return chart, mp, tl
+
+
+MAP_TOOL_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "create_map",
+        "description": (
+            "Show GPS locations on an interactive map (Leaflet + OpenStreetMap). Use for: "
+            "showing visited places, travel routes, frequently visited locations, heatmaps. "
+            "Provide markers (labeled points), path (GPS trail), and/or heatmap (density). "
+            "The map renders alongside your text. Call ONCE per response."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "markers": {
+                    "type": "array",
+                    "description": "Array of labeled location pins",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "lat": {"type": "number"},
+                            "lon": {"type": "number"},
+                            "label": {"type": "string", "description": "Pin label (place name, etc.)"},
+                            "detail": {"type": "string", "description": "Extra info shown in popup"},
+                            "color": {"type": "string", "description": "CSS color, default blue"},
+                        },
+                        "required": ["lat", "lon"],
+                    },
+                },
+                "path": {
+                    "type": "array",
+                    "description": "GPS breadcrumb trail (polyline). Array of {lat, lon} points in order.",
+                    "items": {
+                        "type": "object",
+                        "properties": {"lat": {"type": "number"}, "lon": {"type": "number"}},
+                        "required": ["lat", "lon"],
+                    },
+                },
+                "path_color": {"type": "string", "description": "Polyline color", "default": "#58a6ff"},
+                "heatmap": {
+                    "type": "array",
+                    "description": "Density heatmap points. Array of {lat, lon, intensity}.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "lat": {"type": "number"},
+                            "lon": {"type": "number"},
+                            "intensity": {"type": "number", "description": "0-1 weight", "default": 1},
+                        },
+                        "required": ["lat", "lon"],
+                    },
+                },
+                "center": {
+                    "type": "array",
+                    "description": "[lat, lon] map center. Auto-calculated from data if omitted.",
+                    "items": {"type": "number"},
+                },
+                "zoom": {"type": "integer", "description": "Map zoom level (1-18)", "default": 13},
+                "title": {"type": "string", "description": "Title shown above map"},
+            },
+        },
+    },
+}
+
+TIMELINE_TOOL_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "create_timeline",
+        "description": (
+            "Show a vertical timeline of events (visits, activities, movements). "
+            "Each event has a time, label, type (VISIT/WALKING/IN_VEHICLE/CYCLING/STILL), "
+            "and optional duration. Renders as a styled vertical timeline."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "events": {
+                    "type": "array",
+                    "description": "Timeline events in chronological order",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "time": {"type": "string", "description": "Time string (e.g. '09:30', '2026-04-06 14:00')"},
+                            "label": {"type": "string", "description": "Event description"},
+                            "type": {"type": "string", "description": "VISIT, WALKING, IN_VEHICLE, CYCLING, STILL, etc."},
+                            "duration_min": {"type": "number", "description": "Duration in minutes"},
+                        },
+                        "required": ["time", "label"],
+                    },
+                },
+                "title": {"type": "string", "description": "Timeline title"},
+            },
+            "required": ["events"],
+        },
+    },
+}
 
 # Build the combined tool schemas
-ANALYST_TOOL_SCHEMAS = TOOL_SCHEMAS + [CHART_TOOL_SCHEMA]
+ANALYST_TOOL_SCHEMAS = TOOL_SCHEMAS + [CHART_TOOL_SCHEMA, MAP_TOOL_SCHEMA, TIMELINE_TOOL_SCHEMA]
 
 
 ANALYST_SYSTEM_PROMPT = """\
@@ -183,6 +292,18 @@ life data (sleep, heart rate, stress, activity, environment). Answer in Korean.
 - `lx`: illuminance sensors
 - `W`: jeseubgi_power (dehumidifier)
 
+### Google Timeline (2024-07 ~ present, 50K points)
+- `timeline_visit` — field: place_id, probability, duration_min, latitude, longitude. Tag: semantic_type
+- `timeline_activity` — field: distance_m, duration_min, start_lat/lon, end_lat/lon. Tag: activity_type (WALKING/IN_VEHICLE/CYCLING)
+- `timeline_gps` — field: latitude, longitude. Dense GPS breadcrumbs (45K points)
+- `gfit_location` — field: latitude, longitude, accuracy_m. Google Fit GPS (11K, 2016-2020)
+
+### Google Takeout
+- `gfit_daily` — field: calories, distance_m, steps, hr_avg/max/min, speed_avg. 15-min intervals, 2014-2026.
+- `chrome_history` — field: title, url, visit. Tag: domain. 76K entries.
+- `calendar_event` — field: summary, event. Tag: calendar.
+- `saved_place` — field: latitude, longitude, address. 52 user-saved locations.
+
 ### System (Telegraf): nvidia_smi, cpu, mem, docker_container_cpu
 
 ## How to work
@@ -191,9 +312,16 @@ life data (sleep, heart rate, stress, activity, environment). Answer in Korean.
 2. Use `query_influx()`, `get_sleep_stats()`, `get_activity_summary()`, etc. to get REAL data.
 3. Compute statistics (correlations, trends) from the tool results.
 4. Write your analysis in Korean.
-5. **To show a chart, call the `create_chart` tool** with chart_type, x/y arrays, title, labels.
-   Do NOT embed JSON or code blocks in your text. The chart tool handles rendering.
-6. After calling create_chart, just describe what the chart shows in your text.
+5. **To show a chart**, call `create_chart` with chart_type, x/y arrays, title, labels.
+6. **To show locations on a map**, call `create_map` with markers (pins), path (GPS trail), or heatmap (density).
+   - For visited places: use markers [{lat, lon, label, detail}]
+   - For travel routes: use path [{lat, lon}, ...]
+   - For frequently visited areas: use heatmap [{lat, lon, intensity}]
+7. **To show a timeline of events**, call `create_timeline` with events [{time, label, type, duration_min}].
+   - Types: VISIT, WALKING, IN_VEHICLE, CYCLING, STILL
+8. Do NOT embed JSON or code blocks in your text. The tools handle all rendering.
+9. After calling a visualization tool, describe what it shows in your text.
+10. You can call at most ONE of each (chart, map, timeline) per response.
 
 ## Important
 - NEVER fabricate data. Always query first.
@@ -238,10 +366,9 @@ async def websocket_endpoint(ws: WebSocket):
             await ws.send_json({"type": "status", "status": "thinking"})
 
             try:
-                # Override tool schemas for this LLM call
                 reply = await _analyst_chat(user_msg)
-                chart = tools.pop_chart()
-                await ws.send_json({"type": "answer", "text": reply, "chart": chart})
+                chart, map_spec, timeline = tools.pop_visuals()
+                await ws.send_json({"type": "answer", "text": reply, "chart": chart, "map": map_spec, "timeline": timeline})
             except Exception as e:
                 import traceback
                 traceback.print_exc()
