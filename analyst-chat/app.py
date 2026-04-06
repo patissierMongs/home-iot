@@ -141,30 +141,36 @@ class AnalystTools(Tools):
 
     def __init__(self, ha: HAClient):
         super().__init__(ha)
-        self._last_chart: dict | None = None
-        self._last_map: dict | None = None
-        self._last_timeline: dict | None = None
+        self._visuals: dict[str, Any] = {}
 
     async def create_chart(self, **kwargs) -> dict[str, Any]:
-        spec = _build_plotly_spec(kwargs)
-        self._last_chart = spec
-        return {"status": "chart_created", "title": kwargs.get("title", ""), "points": len(kwargs.get("x", []))}
+        self._visuals["chart"] = _build_plotly_spec(kwargs)
+        return {"status": "chart_created", "points": len(kwargs.get("x", []))}
 
     async def create_map(self, **kwargs) -> dict[str, Any]:
-        self._last_map = kwargs
-        n_markers = len(kwargs.get("markers", []))
-        n_path = len(kwargs.get("path", []))
-        n_heat = len(kwargs.get("heatmap", []))
-        return {"status": "map_created", "markers": n_markers, "path_points": n_path, "heatmap_points": n_heat}
+        self._visuals["map"] = kwargs
+        return {"status": "map_created", "markers": len(kwargs.get("markers", [])), "path": len(kwargs.get("path", [])), "heatmap": len(kwargs.get("heatmap", []))}
 
     async def create_timeline(self, **kwargs) -> dict[str, Any]:
-        self._last_timeline = kwargs
+        self._visuals["timeline"] = kwargs
         return {"status": "timeline_created", "events": len(kwargs.get("events", []))}
 
-    def pop_visuals(self) -> tuple[dict | None, dict | None, dict | None]:
-        chart, mp, tl = self._last_chart, self._last_map, self._last_timeline
-        self._last_chart = self._last_map = self._last_timeline = None
-        return chart, mp, tl
+    async def create_table(self, **kwargs) -> dict[str, Any]:
+        self._visuals["table"] = kwargs
+        return {"status": "table_created", "rows": len(kwargs.get("rows", []))}
+
+    async def create_stats(self, **kwargs) -> dict[str, Any]:
+        self._visuals["stats"] = kwargs
+        return {"status": "stats_created", "items": len(kwargs.get("items", []))}
+
+    async def create_progress(self, **kwargs) -> dict[str, Any]:
+        self._visuals["progress"] = kwargs
+        return {"status": "progress_created", "items": len(kwargs.get("items", []))}
+
+    def pop_visuals(self) -> dict[str, Any]:
+        v = dict(self._visuals)
+        self._visuals.clear()
+        return v
 
 
 MAP_TOOL_SCHEMA = {
@@ -263,8 +269,90 @@ TIMELINE_TOOL_SCHEMA = {
     },
 }
 
+TABLE_TOOL_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "create_table",
+        "description": "Display structured data as a styled table. Use for rankings, comparisons, detailed breakdowns.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "headers": {"type": "array", "items": {"type": "string"}, "description": "Column headers"},
+                "rows": {"type": "array", "items": {"type": "array"}, "description": "2D array of cell values"},
+                "title": {"type": "string"},
+            },
+            "required": ["headers", "rows"],
+        },
+    },
+}
+
+STATS_TOOL_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "create_stats",
+        "description": (
+            "Show key metrics as large stat cards. Use for dashboard-style KPIs. "
+            "Each stat has: label, value, unit, optional trend text and direction (up/down/neutral)."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "label": {"type": "string"},
+                            "value": {"type": "string", "description": "The main number/text to display large"},
+                            "unit": {"type": "string"},
+                            "trend": {"type": "string", "description": "Trend text (e.g. '+12% vs last week')"},
+                            "trend_dir": {"type": "string", "description": "up, down, or neutral"},
+                        },
+                        "required": ["label", "value"],
+                    },
+                },
+            },
+            "required": ["items"],
+        },
+    },
+}
+
+PROGRESS_TOOL_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "create_progress",
+        "description": (
+            "Show ranked items as horizontal progress bars. Great for app usage time, "
+            "site visit counts, category breakdowns — anything where you want to compare magnitudes visually."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "label": {"type": "string"},
+                            "value": {"type": "number", "description": "Numeric value for bar length"},
+                            "display": {"type": "string", "description": "Text shown on the bar (e.g. '2h 30m')"},
+                            "color": {"type": "string", "description": "CSS color"},
+                        },
+                        "required": ["label", "value"],
+                    },
+                },
+                "title": {"type": "string"},
+            },
+            "required": ["items"],
+        },
+    },
+}
+
 # Build the combined tool schemas
-ANALYST_TOOL_SCHEMAS = TOOL_SCHEMAS + [CHART_TOOL_SCHEMA, MAP_TOOL_SCHEMA, TIMELINE_TOOL_SCHEMA]
+ANALYST_TOOL_SCHEMAS = TOOL_SCHEMAS + [
+    CHART_TOOL_SCHEMA, MAP_TOOL_SCHEMA, TIMELINE_TOOL_SCHEMA,
+    TABLE_TOOL_SCHEMA, STATS_TOOL_SCHEMA, PROGRESS_TOOL_SCHEMA,
+]
 
 
 ANALYST_SYSTEM_PROMPT = """\
@@ -354,6 +442,29 @@ Total text: under 200 words. Let the charts speak.
 - For correlations, compute Pearson r and state the value.
 - You CAN call multiple visualization tools in one response (chart + map, chart + timeline, etc.)
 - Prefer bar charts for comparisons, scatter for correlations, line for trends, map for locations, timeline for daily flow.
+
+## Visualization tool selection guide
+| Data type | Best tool | Example |
+|-----------|-----------|---------|
+| Rankings/top-N | create_progress | App usage time top 10 |
+| KPI dashboard | create_stats | Today's steps, avg HR, sleep hours |
+| Detailed breakdown | create_table | Per-day sleep data with all columns |
+| Correlation | create_chart(scatter) | Stress vs sleep with r value |
+| Trend over time | create_chart(line) | 30-day heart rate trend |
+| Distribution | create_chart(bar/pie) | Time per activity category |
+| GPS locations | create_map(markers) | Visited places with labels |
+| Travel route | create_map(path) | Daily movement trail |
+| Hotspot density | create_map(heatmap) | Frequently visited areas |
+| Daily schedule | create_timeline | Hour-by-hour activity log |
+| Composition | create_chart(pie) | Sleep stage % breakdown |
+
+Combine MULTIPLE tools per response for rich analysis:
+- create_stats (headline numbers) + create_progress (ranking) + create_chart (trend)
+- create_map (where) + create_timeline (when) + create_stats (summary)
+
+## Timezone
+- All user-facing timestamps in KST (UTC+9). Data in InfluxDB is UTC — convert before display.
+- Format: "HH:MM" or "YYYY-MM-DD HH:MM" 24h.
 """
 
 
@@ -393,8 +504,8 @@ async def websocket_endpoint(ws: WebSocket):
 
             try:
                 reply = await _analyst_chat(user_msg)
-                chart, map_spec, timeline = tools.pop_visuals()
-                await ws.send_json({"type": "answer", "text": reply, "chart": chart, "map": map_spec, "timeline": timeline})
+                visuals = tools.pop_visuals()
+                await ws.send_json({"type": "answer", "text": reply, **visuals})
             except Exception as e:
                 import traceback
                 traceback.print_exc()

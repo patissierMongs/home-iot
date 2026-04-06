@@ -9,7 +9,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <style>
-  :root { --bg: #0d1117; --surface: #161b22; --border: #30363d; --text: #e6edf3; --text-dim: #8b949e; --accent: #58a6ff; --accent2: #bc8cff; --green: #3fb950; }
+  :root { --bg: #0d1117; --surface: #161b22; --border: #30363d; --text: #e6edf3; --text-dim: #8b949e; --accent: #58a6ff; --accent2: #bc8cff; --green: #3fb950; --red: #f85149; --orange: #f0883e; --yellow: #d29922; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: var(--bg); color: var(--text); font-family: -apple-system, 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; }
   header { padding: 12px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
@@ -17,22 +17,52 @@
   header span { color: var(--text-dim); font-size: 13px; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
   #chat { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
-  .msg { max-width: 92%; padding: 14px 18px; border-radius: 12px; line-height: 1.6; font-size: 14px; }
-  .msg.user { align-self: flex-end; background: var(--accent); color: #000; border-bottom-right-radius: 4px; }
+  .msg { max-width: 95%; padding: 14px 18px; border-radius: 12px; line-height: 1.6; font-size: 14px; }
+  .msg.user { align-self: flex-end; background: var(--accent); color: #000; border-bottom-right-radius: 4px; max-width: 70%; }
   .msg.assistant { align-self: flex-start; background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
   .msg.assistant h3 { color: var(--accent2); margin: 8px 0 4px; font-size: 14px; }
-  .msg.assistant p { margin: 4px 0; }
   .msg.assistant strong { color: var(--accent); }
   .msg.assistant code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
   .msg.status { align-self: center; color: var(--text-dim); font-size: 13px; font-style: italic; }
+
+  /* Viz containers */
   .chart-container { width: 100%; height: 400px; margin: 12px 0; border-radius: 8px; overflow: hidden; }
   .map-container { width: 100%; height: 450px; margin: 12px 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
-  .timeline-container { width: 100%; margin: 12px 0; }
+
+  /* Stat cards */
+  .stats-row { display: flex; gap: 12px; flex-wrap: wrap; margin: 12px 0; }
+  .stat-card { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; min-width: 140px; flex: 1; }
+  .stat-card .stat-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-card .stat-value { font-size: 28px; font-weight: 700; margin: 4px 0; }
+  .stat-card .stat-unit { font-size: 14px; color: var(--text-dim); font-weight: 400; }
+  .stat-card .stat-trend { font-size: 12px; }
+  .stat-card .stat-trend.up { color: var(--green); }
+  .stat-card .stat-trend.down { color: var(--red); }
+  .stat-card .stat-trend.neutral { color: var(--text-dim); }
+
+  /* Tables */
+  .data-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+  .data-table th { background: var(--bg); color: var(--accent); padding: 10px 14px; text-align: left; border-bottom: 2px solid var(--border); font-weight: 600; position: sticky; top: 0; }
+  .data-table td { padding: 8px 14px; border-bottom: 1px solid var(--border); }
+  .data-table tr:hover td { background: rgba(88,166,255,0.05); }
+  .data-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .table-wrap { max-height: 400px; overflow-y: auto; border-radius: 8px; border: 1px solid var(--border); margin: 12px 0; }
+
+  /* Timeline */
+  .timeline-container { margin: 12px 0; }
   .tl-event { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; border-left: 2px solid var(--accent); margin-left: 8px; padding-left: 16px; }
-  .tl-event .tl-time { color: var(--text-dim); font-size: 12px; min-width: 120px; white-space: nowrap; }
+  .tl-event .tl-time { color: var(--text-dim); font-size: 12px; min-width: 100px; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .tl-event .tl-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
   .tl-event .tl-label { font-size: 13px; }
-  .tl-event .tl-dur { color: var(--text-dim); font-size: 12px; }
+  .tl-event .tl-dur { color: var(--text-dim); font-size: 12px; margin-left: 6px; }
+
+  /* Progress bars (for rankings/comparisons) */
+  .progress-row { display: flex; align-items: center; gap: 10px; margin: 4px 0; font-size: 13px; }
+  .progress-row .pr-label { min-width: 120px; color: var(--text-dim); text-align: right; }
+  .progress-row .pr-bar { flex: 1; height: 20px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+  .progress-row .pr-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 8px; font-size: 11px; color: #000; font-weight: 600; }
+  .progress-row .pr-val { min-width: 60px; text-align: right; font-variant-numeric: tabular-nums; }
+
   #input-bar { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 12px; }
   #input-bar input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; color: var(--text); font-size: 14px; outline: none; }
   #input-bar input:focus { border-color: var(--accent); }
@@ -51,19 +81,19 @@
 <header>
   <div class="dot"></div>
   <h1>home-iot Analyst</h1>
-  <span>Nemotron Cascade 2 · local LLM · your data only</span>
+  <span>Nemotron Cascade 2 · local · KST</span>
 </header>
 
 <div id="chat">
   <div class="examples">
-    <button onclick="ask(this.textContent)">내 수면 시간과 가장 관계가 큰 데이터가 뭐야?</button>
-    <button onclick="ask(this.textContent)">최근 30일 스트레스 점수 추이 보여줘</button>
-    <button onclick="ask(this.textContent)">최근 방문한 장소들을 지도에 보여줘</button>
-    <button onclick="ask(this.textContent)">어제 내 이동 경로를 지도에 그려줘</button>
-    <button onclick="ask(this.textContent)">가장 자주 방문한 장소 Top 10</button>
-    <button onclick="ask(this.textContent)">오늘 활동 타임라인 보여줘</button>
-    <button onclick="ask(this.textContent)">운동한 날과 안 한 날 수면 질 차이</button>
-    <button onclick="ask(this.textContent)">심박수가 비정상적으로 높았던 날이 있어?</button>
+    <button onclick="ask(this.textContent)">오늘 내 활동 분석해줘</button>
+    <button onclick="ask(this.textContent)">최근 30일 스트레스 추이</button>
+    <button onclick="ask(this.textContent)">최근 방문 장소 지도</button>
+    <button onclick="ask(this.textContent)">이번 주 이동 경로</button>
+    <button onclick="ask(this.textContent)">수면 시간과 가장 관계 큰 데이터</button>
+    <button onclick="ask(this.textContent)">자주 방문한 장소 Top 10</button>
+    <button onclick="ask(this.textContent)">앱별 사용 시간 분석</button>
+    <button onclick="ask(this.textContent)">어제 타임라인</button>
   </div>
 </div>
 
@@ -76,155 +106,158 @@
 const chat = document.getElementById('chat');
 const input = document.getElementById('input');
 const sendBtn = document.getElementById('send');
-let ws = null;
-let vizCount = 0;
+let ws = null, vizCount = 0;
 
 function connect() {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
   ws = new WebSocket(`${proto}//${location.host}/ws`);
   ws.onopen = () => console.log('ws connected');
-  ws.onclose = () => { setTimeout(connect, 2000); };
+  ws.onclose = () => setTimeout(connect, 2000);
   ws.onmessage = (e) => {
     const msg = JSON.parse(e.data);
     document.querySelectorAll('.msg.status').forEach(el => el.remove());
     if (msg.type === 'status') addMessage('status', '분석 중...');
-    else if (msg.type === 'answer') addAssistantMessage(msg.text, msg.chart, msg.map, msg.timeline);
+    else if (msg.type === 'answer') addAssistantMessage(msg);
     else if (msg.type === 'error') addMessage('assistant', '⚠️ ' + msg.text);
-    sendBtn.disabled = false;
-    input.disabled = false;
+    sendBtn.disabled = false; input.disabled = false;
   };
 }
 
 function addMessage(cls, text) {
-  const div = document.createElement('div');
-  div.className = `msg ${cls}`;
-  div.textContent = text;
-  chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
+  const d = document.createElement('div'); d.className = `msg ${cls}`; d.textContent = text;
+  chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
 }
 
-function addAssistantMessage(text, chartSpec, mapSpec, timelineSpec) {
+function addAssistantMessage(msg) {
   const div = document.createElement('div');
   div.className = 'msg assistant';
-  let html = (text || '')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/### (.*?)$/gm, '<h3>$1</h3>')
-    .replace(/## (.*?)$/gm, '<h3>$1</h3>')
-    .replace(/`(.*?)`/g, '<code>$1</code>')
-    .replace(/\n/g, '<br>');
+  let html = (msg.text || '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/### (.*?)$/gm, '<h3>$1</h3>').replace(/## (.*?)$/gm, '<h3>$1</h3>')
+    .replace(/`(.*?)`/g, '<code>$1</code>').replace(/\n/g, '<br>');
   div.innerHTML = html;
+  chat.appendChild(div);
 
-  // Chart (Plotly)
-  if (chartSpec && chartSpec.data) {
-    const el = document.createElement('div');
-    el.className = 'chart-container';
-    el.id = 'viz-' + (++vizCount);
-    div.appendChild(el);
-    chat.appendChild(div);
-    Plotly.newPlot(el.id, chartSpec.data, Object.assign({
-      paper_bgcolor: '#161b22', plot_bgcolor: '#0d1117',
-      font: { color: '#e6edf3', size: 12 },
-      margin: { t: 40, r: 20, b: 50, l: 60 },
-      xaxis: { gridcolor: '#30363d' }, yaxis: { gridcolor: '#30363d' },
-    }, chartSpec.layout || {}), { responsive: true, displayModeBar: false });
-  }
-
-  // Map (Leaflet)
-  if (mapSpec) {
-    const el = document.createElement('div');
-    el.className = 'map-container';
-    el.id = 'map-' + (++vizCount);
-    div.appendChild(el);
-    chat.appendChild(div);
-    setTimeout(() => renderMap(el.id, mapSpec), 100);
-  }
-
+  // Stats cards
+  if (msg.stats) renderStats(div, msg.stats);
+  // Table
+  if (msg.table) renderTable(div, msg.table);
+  // Progress bars
+  if (msg.progress) renderProgress(div, msg.progress);
+  // Chart
+  if (msg.chart && msg.chart.data) renderChart(div, msg.chart);
+  // Map
+  if (msg.map) renderMapViz(div, msg.map);
   // Timeline
-  if (timelineSpec && timelineSpec.events) {
-    const el = document.createElement('div');
-    el.className = 'timeline-container';
-    el.innerHTML = renderTimeline(timelineSpec);
-    div.appendChild(el);
-  }
+  if (msg.timeline && msg.timeline.events) renderTimeline(div, msg.timeline);
 
-  if (!chartSpec && !mapSpec && !timelineSpec) chat.appendChild(div);
-  else if (!div.parentNode) chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
 }
 
-function renderMap(elId, spec) {
-  const center = spec.center || [37.45, 126.89];
-  const zoom = spec.zoom || 13;
-  const map = L.map(elId, { zoomControl: true }).setView(center, zoom);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OSM &copy; CARTO', maxZoom: 19
-  }).addTo(map);
-
-  // Markers
-  (spec.markers || []).forEach(m => {
-    const color = m.color || '#58a6ff';
-    const icon = L.divIcon({
-      className: '',
-      html: `<div style="width:12px;height:12px;background:${color};border-radius:50%;border:2px solid #fff;"></div>`,
-      iconSize: [12, 12], iconAnchor: [6, 6]
-    });
-    L.marker([m.lat, m.lon], { icon }).addTo(map)
-      .bindPopup(`<b>${m.label || ''}</b>${m.detail ? '<br>' + m.detail : ''}`);
-  });
-
-  // Path (polyline)
-  if (spec.path && spec.path.length > 1) {
-    const latlngs = spec.path.map(p => [p.lat, p.lon]);
-    L.polyline(latlngs, { color: spec.path_color || '#58a6ff', weight: 3, opacity: 0.8 }).addTo(map);
-    map.fitBounds(L.polyline(latlngs).getBounds().pad(0.1));
-  }
-
-  // Heatmap
-  if (spec.heatmap && spec.heatmap.length > 0) {
-    const heat = spec.heatmap.map(h => [h.lat, h.lon, h.intensity || 1]);
-    L.heatLayer(heat, { radius: 20, blur: 25, maxZoom: 15, gradient: {0.2:'#0000ff', 0.4:'#00ffff', 0.6:'#00ff00', 0.8:'#ffff00', 1.0:'#ff0000'} }).addTo(map);
-    const bounds = heat.map(h => [h[0], h[1]]);
-    if (bounds.length) map.fitBounds(bounds, { padding: [30, 30] });
-  }
-
-  // Auto-fit if markers but no path/heatmap
-  if (spec.markers && spec.markers.length > 1 && !spec.path && !spec.heatmap) {
-    const bounds = spec.markers.map(m => [m.lat, m.lon]);
-    map.fitBounds(bounds, { padding: [30, 30] });
-  }
-
-  setTimeout(() => map.invalidateSize(), 200);
-}
-
-function renderTimeline(spec) {
-  const colors = { VISIT: '#bc8cff', WALKING: '#3fb950', IN_VEHICLE: '#58a6ff', CYCLING: '#f0883e', STILL: '#8b949e', default: '#58a6ff' };
-  let html = '';
-  for (const ev of spec.events) {
-    const color = colors[ev.type] || colors.default;
-    const dur = ev.duration_min ? `${Math.round(ev.duration_min)}분` : '';
-    html += `<div class="tl-event">
-      <span class="tl-time">${ev.time || ''}</span>
-      <div class="tl-dot" style="background:${color}"></div>
-      <div><span class="tl-label">${ev.label || ''}</span> <span class="tl-dur">${dur}</span></div>
+function renderStats(parent, stats) {
+  const row = document.createElement('div'); row.className = 'stats-row';
+  for (const s of (stats.items || stats)) {
+    const trendCls = s.trend_dir === 'up' ? 'up' : s.trend_dir === 'down' ? 'down' : 'neutral';
+    const trendIcon = s.trend_dir === 'up' ? '↑' : s.trend_dir === 'down' ? '↓' : '→';
+    row.innerHTML += `<div class="stat-card">
+      <div class="stat-label">${s.label||''}</div>
+      <div class="stat-value">${s.value||''}<span class="stat-unit">${s.unit||''}</span></div>
+      ${s.trend ? `<div class="stat-trend ${trendCls}">${trendIcon} ${s.trend}</div>` : ''}
     </div>`;
   }
-  return html;
+  parent.appendChild(row);
+}
+
+function renderTable(parent, tbl) {
+  const wrap = document.createElement('div'); wrap.className = 'table-wrap';
+  let html = '<table class="data-table"><thead><tr>';
+  for (const h of (tbl.headers||[])) html += `<th>${h}</th>`;
+  html += '</tr></thead><tbody>';
+  for (const row of (tbl.rows||[])) {
+    html += '<tr>';
+    for (const cell of row) {
+      const cls = typeof cell === 'number' ? ' class="num"' : '';
+      html += `<td${cls}>${cell}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+  parent.appendChild(wrap);
+}
+
+function renderProgress(parent, prog) {
+  const container = document.createElement('div'); container.style.margin = '12px 0';
+  const maxVal = Math.max(...(prog.items||[]).map(p => p.value||0));
+  for (const p of (prog.items||prog)) {
+    const pct = maxVal > 0 ? (p.value / maxVal * 100) : 0;
+    const color = p.color || 'var(--accent)';
+    container.innerHTML += `<div class="progress-row">
+      <span class="pr-label">${p.label||''}</span>
+      <div class="pr-bar"><div class="pr-fill" style="width:${pct}%;background:${color}">${pct > 15 ? (p.display||'') : ''}</div></div>
+      <span class="pr-val">${p.display || p.value || ''}</span>
+    </div>`;
+  }
+  parent.appendChild(container);
+}
+
+function renderChart(parent, spec) {
+  const el = document.createElement('div'); el.className = 'chart-container'; el.id = 'viz-'+(++vizCount);
+  parent.appendChild(el);
+  Plotly.newPlot(el.id, spec.data, Object.assign({
+    paper_bgcolor:'#161b22', plot_bgcolor:'#0d1117', font:{color:'#e6edf3',size:12},
+    margin:{t:40,r:20,b:50,l:60}, xaxis:{gridcolor:'#30363d'}, yaxis:{gridcolor:'#30363d'},
+  }, spec.layout||{}), {responsive:true, displayModeBar:false});
+}
+
+function renderMapViz(parent, spec) {
+  const el = document.createElement('div'); el.className = 'map-container'; el.id = 'map-'+(++vizCount);
+  parent.appendChild(el);
+  setTimeout(() => {
+    const center = spec.center || [37.45, 126.89];
+    const map = L.map(el.id).setView(center, spec.zoom||13);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      {attribution:'© OSM © CARTO', maxZoom:19}).addTo(map);
+    (spec.markers||[]).forEach(m => {
+      const icon = L.divIcon({className:'', html:`<div style="width:12px;height:12px;background:${m.color||'#58a6ff'};border-radius:50%;border:2px solid #fff"></div>`, iconSize:[12,12], iconAnchor:[6,6]});
+      L.marker([m.lat,m.lon],{icon}).addTo(map).bindPopup(`<b>${m.label||''}</b>${m.detail?'<br>'+m.detail:''}`);
+    });
+    if (spec.path && spec.path.length > 1) {
+      const ll = spec.path.map(p=>[p.lat,p.lon]);
+      L.polyline(ll,{color:spec.path_color||'#58a6ff',weight:3,opacity:0.8}).addTo(map);
+      map.fitBounds(L.polyline(ll).getBounds().pad(0.1));
+    }
+    if (spec.heatmap && spec.heatmap.length > 0) {
+      const h = spec.heatmap.map(p=>[p.lat,p.lon,p.intensity||1]);
+      L.heatLayer(h,{radius:20,blur:25,maxZoom:15}).addTo(map);
+      map.fitBounds(h.map(p=>[p[0],p[1]]),{padding:[30,30]});
+    }
+    if (spec.markers && spec.markers.length > 1 && !spec.path && !spec.heatmap)
+      map.fitBounds(spec.markers.map(m=>[m.lat,m.lon]),{padding:[30,30]});
+    setTimeout(()=>map.invalidateSize(), 200);
+  }, 100);
+}
+
+function renderTimeline(parent, spec) {
+  const colors = {VISIT:'#bc8cff',WALKING:'#3fb950',IN_VEHICLE:'#58a6ff',CYCLING:'#f0883e',STILL:'#8b949e',RUNNING:'#f85149',default:'#58a6ff'};
+  const el = document.createElement('div'); el.className = 'timeline-container';
+  let html = '';
+  for (const ev of spec.events) {
+    const c = colors[ev.type]||colors.default;
+    const dur = ev.duration_min ? `${Math.round(ev.duration_min)}분` : '';
+    html += `<div class="tl-event"><span class="tl-time">${ev.time||''}</span><div class="tl-dot" style="background:${c}"></div><div><span class="tl-label">${ev.label||''}</span><span class="tl-dur">${dur}</span></div></div>`;
+  }
+  el.innerHTML = html; parent.appendChild(el);
 }
 
 function send() {
   const text = input.value.trim();
   if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
-  addMessage('user', text);
-  ws.send(text);
-  input.value = '';
-  sendBtn.disabled = true;
-  input.disabled = true;
-  const ex = document.querySelector('.examples');
-  if (ex) ex.remove();
+  addMessage('user', text); ws.send(text); input.value = '';
+  sendBtn.disabled = true; input.disabled = true;
+  const ex = document.querySelector('.examples'); if (ex) ex.remove();
 }
-
 function ask(text) { input.value = text; send(); }
-input.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
+input.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
 connect();
 </script>
 </body>
