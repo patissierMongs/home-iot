@@ -145,6 +145,8 @@ function addAssistantMessage(msg) {
   if (msg.progress) renderProgress(div, msg.progress);
   // Chart
   if (msg.chart && msg.chart.data) renderChart(div, msg.chart);
+  // Gantt timeline
+  if (msg.gantt && msg.gantt.data) renderChart(div, msg.gantt);
   // Map
   if (msg.map) renderMapViz(div, msg.map);
   // Timeline

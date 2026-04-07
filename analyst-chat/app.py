@@ -136,6 +136,98 @@ def _build_plotly_spec(params: dict[str, Any]) -> dict[str, Any]:
     return {"data": traces, "layout": layout}
 
 
+def _build_gantt_spec(params: dict[str, Any]) -> dict[str, Any]:
+    """Convert create_gantt parameters to a Plotly.js horizontal bar spec."""
+    from datetime import datetime, timedelta
+    import re
+
+    events = params.get("events", [])
+    if not events:
+        return {"data": [], "layout": {"title": params.get("title", "")}}
+
+    CATEGORY_COLORS = {
+        "VISIT": "#bc8cff", "HOME": "#8b949e", "WORK": "#58a6ff",
+        "WALKING": "#3fb950", "IN_VEHICLE": "#f0883e", "CYCLING": "#d29922",
+        "RUNNING": "#f85149", "SLEEP": "#6e40c9", "STILL": "#484f58",
+        "GAMING": "#f85149", "CODING": "#58a6ff", "BROWSING": "#f0883e",
+        "ENTERTAINMENT": "#bc8cff", "UNKNOWN": "#8b949e",
+    }
+
+    def parse_time(s: str) -> datetime | None:
+        if not s:
+            return None
+        for fmt in ("%Y-%m-%dT%H:%M:%S.%f%z", "%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%dT%H:%M:%S",
+                     "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%H:%M:%S", "%H:%M"):
+            try:
+                dt = datetime.strptime(s, fmt)
+                if dt.year == 1900:  # time-only parsed
+                    dt = dt.replace(year=2026, month=4, day=7)
+                return dt
+            except ValueError:
+                continue
+        return None
+
+    # Group events by category for separate traces
+    by_cat: dict[str, list] = {}
+    rows_seen: dict[str, int] = {}
+
+    for ev in events:
+        start = parse_time(ev.get("start", ""))
+        end = parse_time(ev.get("end", ""))
+        if not start or not end:
+            continue
+        cat = ev.get("category", ev.get("label", "UNKNOWN")).upper()
+        cat_key = cat.split()[0][:15]  # normalize
+        row = ev.get("row", start.strftime("%m/%d"))
+        if row not in rows_seen:
+            rows_seen[row] = len(rows_seen)
+
+        if cat_key not in by_cat:
+            by_cat[cat_key] = []
+        by_cat[cat_key].append({
+            "start": start, "end": end,
+            "label": ev.get("label", cat),
+            "row": row,
+            "duration_min": (end - start).total_seconds() / 60,
+        })
+
+    traces = []
+    for cat, items in by_cat.items():
+        color = CATEGORY_COLORS.get(cat, "#8b949e")
+        # Convert to Plotly bar format
+        starts = [it["start"].isoformat() for it in items]
+        durations = [(it["end"] - it["start"]).total_seconds() / 60 for it in items]
+        rows = [it["row"] for it in items]
+        hover = [f"{it['label']}<br>{it['start'].strftime('%H:%M')}-{it['end'].strftime('%H:%M')}<br>{it['duration_min']:.0f}분" for it in items]
+
+        traces.append({
+            "type": "bar",
+            "orientation": "h",
+            "y": rows,
+            "x": durations,
+            "base": starts,
+            "name": cat,
+            "marker": {"color": color, "opacity": 0.85},
+            "hovertext": hover,
+            "hoverinfo": "text",
+            "textposition": "inside",
+            "text": [it["label"][:20] if it["duration_min"] > 30 else "" for it in items],
+            "textfont": {"size": 10, "color": "#fff"},
+        })
+
+    layout: dict[str, Any] = {
+        "title": params.get("title", "Activity Timeline"),
+        "barmode": "overlay",
+        "xaxis": {"type": "date", "title": ""},
+        "yaxis": {"title": "", "autorange": "reversed"},
+        "showlegend": True,
+        "legend": {"orientation": "h", "y": -0.15},
+        "height": max(200, 80 + len(rows_seen) * 60),
+    }
+
+    return {"data": traces, "layout": layout}
+
+
 class AnalystTools(Tools):
     """Extends the base Tools with visualization tools for the analyst UI."""
 
@@ -166,6 +258,11 @@ class AnalystTools(Tools):
     async def create_progress(self, **kwargs) -> dict[str, Any]:
         self._visuals["progress"] = kwargs
         return {"status": "progress_created", "items": len(kwargs.get("items", []))}
+
+    async def create_gantt(self, **kwargs) -> dict[str, Any]:
+        spec = _build_gantt_spec(kwargs)
+        self._visuals["gantt"] = spec
+        return {"status": "gantt_created", "events": len(kwargs.get("events", []))}
 
     def pop_visuals(self) -> dict[str, Any]:
         v = dict(self._visuals)
@@ -317,6 +414,41 @@ STATS_TOOL_SCHEMA = {
     },
 }
 
+GANTT_TOOL_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "create_gantt",
+        "description": (
+            "Show activities as a horizontal timeline (Gantt-style chart). Each segment is a colored bar "
+            "spanning from start to end time. Perfect for visualizing daily schedules, location visit patterns, "
+            "app usage sessions, or any data with start/end times. "
+            "X-axis = time, segments = colored bars per activity/place."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "events": {
+                    "type": "array",
+                    "description": "Activity segments with start/end times",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "start": {"type": "string", "description": "Start time ISO or 'HH:MM'"},
+                            "end": {"type": "string", "description": "End time ISO or 'HH:MM'"},
+                            "label": {"type": "string", "description": "Activity name/place name"},
+                            "category": {"type": "string", "description": "Category for grouping/coloring (VISIT, WALKING, WORK, SLEEP, etc.)"},
+                            "row": {"type": "string", "description": "Which row to place this on (e.g. date, device name). Default: auto"},
+                        },
+                        "required": ["start", "end", "label"],
+                    },
+                },
+                "title": {"type": "string", "description": "Chart title"},
+            },
+            "required": ["events"],
+        },
+    },
+}
+
 PROGRESS_TOOL_SCHEMA = {
     "type": "function",
     "function": {
@@ -352,6 +484,7 @@ PROGRESS_TOOL_SCHEMA = {
 ANALYST_TOOL_SCHEMAS = TOOL_SCHEMAS + [
     CHART_TOOL_SCHEMA, MAP_TOOL_SCHEMA, TIMELINE_TOOL_SCHEMA,
     TABLE_TOOL_SCHEMA, STATS_TOOL_SCHEMA, PROGRESS_TOOL_SCHEMA,
+    GANTT_TOOL_SCHEMA,
 ]
 
 
@@ -496,7 +629,9 @@ suggesting late gaming sessions compound the stress effect. On the 12 days where
 | GPS locations | create_map(markers) | Visited places with labels |
 | Travel route | create_map(path) | Daily movement trail |
 | Hotspot density | create_map(heatmap) | Frequently visited areas |
-| Daily schedule | create_timeline | Hour-by-hour activity log |
+| Daily schedule (text) | create_timeline | Simple event list |
+| Daily schedule (visual) | create_gantt | Horizontal colored bars spanning start→end time |
+| Multi-day comparison | create_gantt | Multiple rows, one per day |
 | Composition | create_chart(pie) | Sleep stage % breakdown |
 
 Combine MULTIPLE tools per response for rich analysis:
