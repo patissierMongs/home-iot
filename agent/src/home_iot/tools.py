@@ -369,6 +369,7 @@ class Tools:
             org=settings.influx_org,
         )
         self._query_api = self._influx.query_api()
+        self._geocode_http = httpx.AsyncClient(timeout=10.0)
 
     # ---------- HA ----------
     async def ha_list_entities(self, domain: str | None = None) -> list[dict[str, str]]:
@@ -547,19 +548,18 @@ from(bucket: "{settings.influx_bucket}")
     async def _reverse_geocode(self, lat: float, lon: float) -> dict[str, str]:
         """Reverse geocode via Nominatim (free, no API key). Rate: 1 req/sec."""
         try:
-            import httpx as _httpx
-            async with _httpx.AsyncClient() as c:
-                r = await c.get(
-                    f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json&accept-language=ko",
-                    headers={"User-Agent": "home-iot/1.0"}, timeout=10.0,
-                )
-                d = r.json()
-                addr = d.get("address", {})
-                name = addr.get("amenity") or addr.get("shop") or addr.get("building") or addr.get("leisure") or ""
-                road = addr.get("road", "")
-                city = addr.get("city") or addr.get("county") or addr.get("town") or ""
-                return {"name": name, "road": road, "city": city, "full": d.get("display_name", "")[:120]}
-        except Exception:
+            r = await self._geocode_http.get(
+                f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json&accept-language=ko",
+                headers={"User-Agent": "home-iot/1.0"}, timeout=10.0,
+            )
+            d = r.json()
+            addr = d.get("address", {})
+            name = addr.get("amenity") or addr.get("shop") or addr.get("building") or addr.get("leisure") or ""
+            road = addr.get("road", "")
+            city = addr.get("city") or addr.get("county") or addr.get("town") or ""
+            return {"name": name, "road": road, "city": city, "full": d.get("display_name", "")[:120]}
+        except Exception as e:
+            log.warning("reverse_geocode_failed", lat=lat, lon=lon, error=str(e))
             return {"name": "", "road": "", "city": "", "full": ""}
 
     async def get_top_visited_places(self, days: int = 90, top_n: int = 15) -> dict[str, Any]:
@@ -599,15 +599,13 @@ from(bucket: "{settings.influx_bucket}")
 
         ranked = sorted(places.items(), key=lambda x: -x[1]["count"])[:top_n]
 
-        # Reverse geocode top places (with rate limiting)
-        import asyncio as _aio
         result_places = []
         for i, (pid, info) in enumerate(ranked):
             geo = {"name": "", "road": "", "city": "", "full": ""}
             if info["lat"] and info["lon"]:
                 geo = await self._reverse_geocode(info["lat"], info["lon"])
                 if i < top_n - 1:
-                    await _aio.sleep(1.05)  # Nominatim: max 1 req/sec
+                    await asyncio.sleep(1.05)  # Nominatim rate limit: 1 req/sec
 
             place_name = geo["name"] or info["semantic_type"] or f"Place {i+1}"
             result_places.append({
@@ -638,35 +636,18 @@ from(bucket: "{settings.influx_bucket}")
         flux = f"""
 from(bucket: "{settings.influx_bucket}")
   |> range(start: -{days}d)
-  |> filter(fn: (r) => r._measurement == "timeline_gps" and r._field == "latitude")
-  |> keep(columns: ["_time", "_value"])
+  |> filter(fn: (r) => r._measurement == "timeline_gps")
+  |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
+  |> keep(columns: ["_time", "latitude", "longitude"])
   |> sort(columns: ["_time"])
-  |> limit(n: {max_points * 2})
+  |> limit(n: {max_points})
 """
-        lat_rows = await self._run_flux(flux)
-
-        flux_lon = f"""
-from(bucket: "{settings.influx_bucket}")
-  |> range(start: -{days}d)
-  |> filter(fn: (r) => r._measurement == "timeline_gps" and r._field == "longitude")
-  |> keep(columns: ["_time", "_value"])
-  |> sort(columns: ["_time"])
-  |> limit(n: {max_points * 2})
-"""
-        lon_rows = await self._run_flux(flux_lon)
-
-        # Match by timestamp
-        lon_map = {r["time"]: r["value"] for r in lon_rows if r.get("time")}
-        points = []
-        for r in lat_rows:
-            t = r.get("time")
-            lat = r.get("value")
-            lon = lon_map.get(t)
-            if lat and lon and t:
-                points.append({"lat": float(lat), "lon": float(lon), "time": t})
-                if len(points) >= max_points:
-                    break
-
+        rows = await self._run_flux(flux)
+        points = [
+            {"lat": float(r["latitude"]), "lon": float(r["longitude"]), "time": r.get("time", "")}
+            for r in rows
+            if r.get("latitude") and r.get("longitude")
+        ]
         return {"days": days, "point_count": len(points), "points": points}
 
     # ---------- 집 컨텍스트 ----------
