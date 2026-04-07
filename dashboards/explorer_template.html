@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ORBITAL — Life Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+:root {
+  --void: #06080d;
+  --deep: #0a0e17;
+  --surface: #111827;
+  --panel: #151c2c;
+  --border: #1e293b;
+  --border-glow: #1e3a5f;
+  --text: #e2e8f0;
+  --text-dim: #64748b;
+  --text-muted: #475569;
+
+  --hr: #ff6b6b;
+  --hr-glow: rgba(255,107,107,0.3);
+  --stress: #ffa726;
+  --stress-glow: rgba(255,167,38,0.3);
+  --spo2: #42a5f5;
+  --spo2-glow: rgba(66,165,245,0.3);
+  --steps: #66bb6a;
+  --steps-glow: rgba(102,187,106,0.3);
+  --sleep: #ab47bc;
+  --sleep-glow: rgba(171,71,188,0.3);
+  --trail: #00e5ff;
+  --trail-glow: rgba(0,229,255,0.25);
+  --accent: #00e5ff;
+  --current: #ff3d57;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--void);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: default;
+}
+
+/* === TOP CONTROL BAR === */
+.topbar {
+  background: linear-gradient(180deg, var(--deep) 0%, var(--void) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+
+.topbar::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.3;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-right: 8px;
+}
+
+.brand h1 {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, var(--accent), #b388ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand sub {
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  font-weight: 400;
+}
+
+.ctrl-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+
+.ctrl-group label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.ctrl-btn {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid transparent;
+  border-radius: 5px;
+  padding: 4px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  transition: all 0.2s;
+}
+
+.ctrl-btn:hover { color: var(--text); background: var(--panel); }
+.ctrl-btn.on {
+  color: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 8px var(--trail-glow);
+}
+
+.ctrl-sep {
+  width: 1px;
+  height: 22px;
+  background: var(--border);
+}
+
+/* Range inputs */
+input[type=range] {
+  -webkit-appearance: none;
+  background: var(--border);
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: grab;
+  box-shadow: 0 0 10px var(--trail-glow), 0 0 20px var(--trail-glow);
+  transition: box-shadow 0.2s;
+}
+
+input[type=range]::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 14px var(--accent), 0 0 28px var(--trail-glow);
+}
+
+input[type=range]:active::-webkit-slider-thumb { cursor: grabbing; }
+
+.speed-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--accent);
+  min-width: 30px;
+  text-align: right;
+  font-weight: 500;
+}
+
+input[type=date] {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* === TIMELINE SCRUBBER === */
+.scrubber {
+  background: var(--deep);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.scrubber .timestamp {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  min-width: 160px;
+  text-shadow: 0 0 12px var(--trail-glow);
+}
+
+.scrubber input[type=range] { flex: 1; height: 6px; }
+
+.scrubber input[type=range]::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  background: var(--current);
+  box-shadow: 0 0 12px rgba(255,61,87,0.5), 0 0 24px rgba(255,61,87,0.25);
+}
+
+.scrubber .counter {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  min-width: 90px;
+  text-align: right;
+}
+
+/* === MAIN LAYOUT === */
+.main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* === SIDEBAR === */
+#sidebar {
+  width: 360px;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--deep) 0%, var(--void) 100%);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+#sidebar::-webkit-scrollbar { width: 4px; }
+#sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.section {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.section-title::before {
+  content: '';
+  width: 3px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+/* === KPI CARDS === */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.kpi {
+  background: rgba(17, 24, 39, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 8px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.kpi::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+}
+
+.kpi.hr::before { background: var(--hr); box-shadow: 0 0 8px var(--hr-glow); }
+.kpi.stress::before { background: var(--stress); box-shadow: 0 0 8px var(--stress-glow); }
+.kpi.spo2::before { background: var(--spo2); box-shadow: 0 0 8px var(--spo2-glow); }
+.kpi.steps::before { background: var(--steps); box-shadow: 0 0 8px var(--steps-glow); }
+.kpi.sleep::before { background: var(--sleep); box-shadow: 0 0 8px var(--sleep-glow); }
+.kpi.temp::before { background: var(--spo2); }
+.kpi.humid::before { background: var(--spo2); }
+.kpi.date::before { background: var(--text-muted); }
+
+.kpi:hover {
+  border-color: var(--border-glow);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
+
+.kpi .kpi-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.kpi.hr .kpi-val { color: var(--hr); }
+.kpi.stress .kpi-val { color: var(--stress); }
+.kpi.spo2 .kpi-val { color: var(--spo2); }
+.kpi.steps .kpi-val { color: var(--steps); }
+.kpi.sleep .kpi-val { color: var(--sleep); }
+.kpi.temp .kpi-val, .kpi.humid .kpi-val { color: var(--spo2); }
+.kpi.date .kpi-val { color: var(--text-dim); font-size: 13px; }
+
+.kpi .kpi-label {
+  font-size: 8px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+/* === CHARTS === */
+.chart-wrap { height: 180px; }
+.chart-wrap-sm { height: 130px; }
+
+/* === LIFE CALENDAR === */
+.cal-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.cal-day {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.cal-day:hover {
+  transform: scale(1.5);
+  box-shadow: 0 0 6px var(--steps-glow);
+  z-index: 1;
+  position: relative;
+}
+
+/* === PLACE LIST === */
+.place-list {
+  list-style: none;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.place-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 4px;
+  border-bottom: 1px solid rgba(30,41,59,0.5);
+  cursor: pointer;
+  transition: background 0.15s;
+  font-size: 11px;
+}
+
+.place-item:hover { background: rgba(0,229,255,0.05); }
+
+.place-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.place-name { flex: 1; font-weight: 400; }
+.place-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  color: var(--steps);
+  font-size: 10px;
+}
+
+/* === MAP === */
+#map {
+  flex: 1;
+  position: relative;
+}
+
+.leaflet-container { background: var(--void) !important; }
+
+/* Pulsing current position marker (CSS only) */
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.current-marker {
+  width: 14px;
+  height: 14px;
+  position: relative;
+}
+
+.current-marker .dot {
+  width: 14px;
+  height: 14px;
+  background: var(--current);
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 12px rgba(255,61,87,0.6);
+  animation: pulse-dot 2s ease-in-out infinite;
+  position: absolute;
+}
+
+.current-marker .ring {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--current);
+  border-radius: 50%;
+  position: absolute;
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+/* Map layer toggle */
+.map-controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.map-toggle {
+  background: rgba(10,14,23,0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 10px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.map-toggle:hover { border-color: var(--accent); color: var(--text); }
+.map-toggle.on { color: var(--accent); border-color: var(--accent); box-shadow: 0 0 6px var(--trail-glow); }
+
+/* Stagger entrance animation */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.section { animation: fade-up 0.5s ease-out both; }
+.section:nth-child(1) { animation-delay: 0.05s; }
+.section:nth-child(2) { animation-delay: 0.1s; }
+.section:nth-child(3) { animation-delay: 0.15s; }
+.section:nth-child(4) { animation-delay: 0.2s; }
+.section:nth-child(5) { animation-delay: 0.25s; }
+</style>
+</head>
+<body>
+
+<!-- TOP CONTROL BAR -->
+<div class="topbar">
+  <div class="brand">
+    <h1>Orbital</h1>
+    <sub>Life Telemetry</sub>
+  </div>
+
+  <div class="ctrl-group">
+    <label>Range</label>
+    <input type="date" id="dfrom" value="2025-07-01">
+    <span style="color:var(--text-muted);font-size:10px">—</span>
+    <input type="date" id="dto" value="2026-04-07">
+    <button class="ctrl-btn" onclick="applyRange()">Apply</button>
+  </div>
+
+  <div class="ctrl-sep"></div>
+
+  <div class="ctrl-group">
+    <label>Playback</label>
+    <button class="ctrl-btn" onclick="pb(-1)">&#9664;</button>
+    <button class="ctrl-btn on" id="bstop" onclick="pb(0)">&#9724;</button>
+    <button class="ctrl-btn" onclick="pb(1)">&#9654;</button>
+    <button class="ctrl-btn" onclick="pb(3)">&#9654;&#9654;</button>
+  </div>
+
+  <div class="ctrl-sep"></div>
+
+  <div class="ctrl-group">
+    <label>Speed</label>
+    <input type="range" id="spd" min="1" max="100" value="15" style="width:100px">
+    <span class="speed-val" id="spdv">15x</span>
+  </div>
+</div>
+
+<!-- TIMELINE SCRUBBER -->
+<div class="scrubber">
+  <span class="timestamp" id="tl">—</span>
+  <input type="range" id="sl" min="0" max="100" value="100">
+  <span class="counter" id="tc">—</span>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+
+    <div class="section">
+      <div class="section-title">Vitals</div>
+      <div class="kpi-grid" id="kpi"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Heart Rate &amp; Stress</div>
+      <div class="chart-wrap" id="health-chart"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Steps &amp; Sleep</div>
+      <div class="chart-wrap-sm" id="steps-chart"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Life Calendar</div>
+      <div class="cal-grid" id="cal"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Frequent Places</div>
+      <ul class="place-list" id="pl"></ul>
+    </div>
+
+  </div>
+
+  <!-- MAP -->
+  <div id="map">
+    <div class="map-controls">
+      <button class="map-toggle on" id="mt-trail" onclick="toggleLyr('trail',this)">Trail</button>
+      <button class="map-toggle on" id="mt-heat" onclick="toggleLyr('heat',this)">Heatmap</button>
+      <button class="map-toggle on" id="mt-places" onclick="toggleLyr('places',this)">Places</button>
+      <button class="map-toggle" id="mt-transport" onclick="toggleLyr('transport',this)">Transport</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// DATA_INJECTION_POINT
+var D = {gps:[],places:[],acts:[],hr:{},stress:{},spo2:{},steps:{},sleep:{},temp:{},humid:{}};
+
+D.gps.sort(function(a,b){ return a[2] < b[2] ? -1 : 1; });
+
+// === MAP SETUP ===
+var map = L.map("map", {zoomControl: false}).setView([37.45, 126.89], 12);
+L.control.zoom({position: "bottomright"}).addTo(map);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {maxZoom: 19}).addTo(map);
+
+var lyrs = {};
+var trail = null, heatLyr = null, actLyr = null, mkrLyr = null, curMk = null;
+var ptimer = null;
+var filtGps = D.gps, filtActs = D.acts;
+
+var tColors = {INFERRED_HOME: "#bc8cff", INFERRED_WORK: "#42a5f5", UNKNOWN: "#66bb6a"};
+var aColors = {WALKING: "#66bb6a", IN_VEHICLE: "#ffa726", CYCLING: "#ffd54f", RUNNING: "#ff6b6b", IN_RAIL_VEHICLE: "#42a5f5"};
+
+var sl = document.getElementById("sl");
+var spdEl = document.getElementById("spd");
+spdEl.oninput = function() { document.getElementById("spdv").textContent = this.value + "x"; };
+
+// === DRAW FUNCTION ===
+function draw(idx) {
+  if (idx < 0) idx = 0;
+  if (idx >= filtGps.length) idx = filtGps.length - 1;
+
+  var pts = filtGps.slice(0, idx + 1);
+  var ll = [];
+  for (var i = 0; i < pts.length; i++) ll.push([pts[i][0], pts[i][1]]);
+
+  // Trail
+  if (trail) map.removeLayer(trail);
+  trail = L.polyline(ll, {color: "#00e5ff", weight: 2.5, opacity: 0.6}).addTo(map);
+  lyrs.trail = trail;
+
+  // Current position marker with pulse
+  if (curMk) map.removeLayer(curMk);
+  if (pts.length > 0) {
+    var last = pts[pts.length - 1];
+    var pulseIcon = L.divIcon({
+      className: "",
+      html: "<div class='current-marker'><div class='ring'></div><div class='dot'></div></div>",
+      iconSize: [14, 14],
+      iconAnchor: [7, 7]
+    });
+    curMk = L.marker([last[0], last[1]], {icon: pulseIcon}).addTo(map);
+    document.getElementById("tl").textContent = last[2].replace("T", "  ");
+    document.getElementById("tc").textContent = pts.length + " / " + filtGps.length;
+    updateKPI(last[2].slice(0, 10));
+  }
+
+  // Heatmap
+  if (heatLyr) map.removeLayer(heatLyr);
+  var step = Math.max(1, Math.floor(pts.length / 1500));
+  var hp = [];
+  for (var i = 0; i < pts.length; i += step) hp.push([pts[i][0], pts[i][1], 0.4]);
+  heatLyr = L.heatLayer(hp, {radius: 14, blur: 20, maxZoom: 14,
+    gradient: {0.15: "#0d47a1", 0.35: "#00bcd4", 0.55: "#4caf50", 0.75: "#ffeb3b", 1.0: "#ff5722"}
+  }).addTo(map);
+  lyrs.heat = heatLyr;
+
+  // Activity routes
+  if (actLyr) map.removeLayer(actLyr);
+  var cutoff = pts.length > 0 ? pts[pts.length - 1][2] : "";
+  actLyr = L.layerGroup();
+  for (var i = 0; i < filtActs.length; i++) {
+    var a = filtActs[i];
+    if (a.t <= cutoff && a.sl) {
+      L.polyline([[a.sl, a.so], [a.el, a.eo]], {
+        color: aColors[a.ty] || "#64748b", weight: 3, opacity: 0.7
+      }).addTo(actLyr);
+    }
+  }
+  lyrs.transport = actLyr;
+  if (document.getElementById("mt-transport").classList.contains("on")) actLyr.addTo(map);
+}
+
+// === KPI UPDATE ===
+function updateKPI(dateStr) {
+  var hr = D.hr[dateStr] || "--";
+  var st = D.stress[dateStr] || "--";
+  var sp = D.spo2[dateStr] || "--";
+  var stp = D.steps[dateStr];
+  var slp = D.sleep[dateStr] || "--";
+  var tmp = D.temp[dateStr] || "--";
+  var hmd = D.humid[dateStr] || "--";
+  var stpFmt = (typeof stp === "number") ? stp.toLocaleString() : "--";
+
+  document.getElementById("kpi").innerHTML =
+    "<div class='kpi hr'><div class='kpi-val'>" + hr + "</div><div class='kpi-label'>HR bpm</div></div>" +
+    "<div class='kpi stress'><div class='kpi-val'>" + st + "</div><div class='kpi-label'>Stress</div></div>" +
+    "<div class='kpi spo2'><div class='kpi-val'>" + sp + "</div><div class='kpi-label'>SpO2 %</div></div>" +
+    "<div class='kpi steps'><div class='kpi-val'>" + stpFmt + "</div><div class='kpi-label'>Steps</div></div>" +
+    "<div class='kpi sleep'><div class='kpi-val'>" + slp + "</div><div class='kpi-label'>Sleep h</div></div>" +
+    "<div class='kpi temp'><div class='kpi-val'>" + tmp + "</div><div class='kpi-label'>Temp \u00b0C</div></div>" +
+    "<div class='kpi humid'><div class='kpi-val'>" + hmd + "</div><div class='kpi-label'>Humid %</div></div>" +
+    "<div class='kpi date'><div class='kpi-val'>" + dateStr.slice(5) + "</div><div class='kpi-label'>Date</div></div>";
+}
+
+// === CHARTS ===
+function updateCharts(from, to) {
+  var days = Object.keys(D.hr).filter(function(d) { return d >= from && d <= to; }).sort();
+  var days2 = Object.keys(D.steps).filter(function(d) { return d >= from && d <= to; }).sort();
+
+  Plotly.newPlot("health-chart", [
+    {x: days, y: days.map(function(d) { return D.hr[d] || null; }), name: "HR", type: "scatter", mode: "lines",
+     line: {color: "#ff6b6b", width: 1.5}},
+    {x: days, y: days.map(function(d) { return D.stress[d] || null; }), name: "Stress", type: "scatter", mode: "lines",
+     line: {color: "#ffa726", width: 1.5}, yaxis: "y2"},
+    {x: days, y: days.map(function(d) { return D.spo2[d] || null; }), name: "SpO2", type: "scatter", mode: "lines",
+     line: {color: "#42a5f5", width: 1}, yaxis: "y3"}
+  ], {
+    paper_bgcolor: "transparent", plot_bgcolor: "transparent",
+    font: {color: "#94a3b8", size: 9, family: "JetBrains Mono"},
+    margin: {t: 5, r: 35, b: 25, l: 35},
+    showlegend: true, legend: {x: 0, y: 1.18, orientation: "h", font: {size: 9}},
+    xaxis: {gridcolor: "#1e293b", tickangle: -45, tickfont: {size: 8}},
+    yaxis: {title: {text: "bpm", font: {size: 9}}, gridcolor: "#1e293b", side: "left"},
+    yaxis2: {overlaying: "y", side: "right", showgrid: false},
+    yaxis3: {overlaying: "y", side: "right", showgrid: false, visible: false}
+  }, {responsive: true, displayModeBar: false});
+
+  Plotly.newPlot("steps-chart", [
+    {x: days2, y: days2.map(function(d) { return D.steps[d] || 0; }), name: "Steps", type: "bar",
+     marker: {color: "rgba(102,187,106,0.6)"}},
+    {x: days2, y: days2.map(function(d) { return (D.sleep[d] || 0) * 1000; }), name: "Sleep\u00d71k", type: "scatter",
+     mode: "lines", line: {color: "#ab47bc", width: 2}, yaxis: "y2"}
+  ], {
+    paper_bgcolor: "transparent", plot_bgcolor: "transparent",
+    font: {color: "#94a3b8", size: 9, family: "JetBrains Mono"},
+    margin: {t: 5, r: 30, b: 25, l: 40},
+    showlegend: true, legend: {x: 0, y: 1.2, orientation: "h", font: {size: 9}},
+    xaxis: {gridcolor: "#1e293b", tickangle: -45, tickfont: {size: 8}},
+    yaxis: {gridcolor: "#1e293b"},
+    yaxis2: {overlaying: "y", side: "right", showgrid: false}
+  }, {responsive: true, displayModeBar: false});
+}
+
+// === RANGE FILTER ===
+function applyRange() {
+  var f = document.getElementById("dfrom").value + "T00:00:00";
+  var t = document.getElementById("dto").value + "T23:59:59";
+  filtGps = D.gps.filter(function(p) { return p[2] >= f && p[2] <= t; });
+  filtActs = D.acts.filter(function(a) { return a.t >= f && a.t <= t; });
+  sl.max = Math.max(1, filtGps.length - 1);
+  sl.value = filtGps.length - 1;
+  draw(filtGps.length - 1);
+  updateCharts(f.slice(0, 10), t.slice(0, 10));
+  if (filtGps.length > 1) {
+    var bl = filtGps.map(function(p) { return [p[0], p[1]]; });
+    map.fitBounds(bl, {padding: [30, 30]});
+  }
+}
+
+// === SLIDER ===
+var raf = null;
+sl.addEventListener("input", function() {
+  if (raf) cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(function() { draw(parseInt(sl.value)); });
+});
+
+// === PLAYBACK ===
+function pb(s) {
+  if (ptimer) { clearInterval(ptimer); ptimer = null; }
+  document.querySelectorAll(".ctrl-btn").forEach(function(b) { b.classList.remove("on"); });
+  if (s === 0) { document.getElementById("bstop").classList.add("on"); return; }
+  var speed = parseInt(spdEl.value);
+  var step = s > 0 ? Math.max(1, s * speed) : -speed;
+  ptimer = setInterval(function() {
+    var v = parseInt(sl.value) + step;
+    if (v >= filtGps.length) { v = filtGps.length - 1; clearInterval(ptimer); }
+    if (v < 0) { v = 0; clearInterval(ptimer); }
+    sl.value = v;
+    draw(v);
+  }, 50);
+}
+
+// === LAYER TOGGLES ===
+function toggleLyr(name, btn) {
+  if (!lyrs[name]) return;
+  if (map.hasLayer(lyrs[name])) {
+    map.removeLayer(lyrs[name]);
+    btn.classList.remove("on");
+  } else {
+    lyrs[name].addTo(map);
+    btn.classList.add("on");
+  }
+}
+
+// === PLACES ===
+mkrLyr = L.layerGroup();
+for (var i = 0; i < D.places.length; i++) {
+  var p = D.places[i];
+  var c = tColors[p.t] || "#66bb6a";
+  var sz = Math.min(20, 8 + p.v / 8);
+  var icon = L.divIcon({
+    className: "",
+    html: "<div style='width:" + sz + "px;height:" + sz + "px;background:" + c + ";border-radius:50%;border:2px solid rgba(255,255,255,0.8);box-shadow:0 0 10px " + c + "'></div>",
+    iconSize: [sz, sz], iconAnchor: [sz / 2, sz / 2]
+  });
+  L.marker([p.lat, p.lon], {icon: icon}).addTo(mkrLyr)
+    .bindPopup("<b style='color:" + c + "'>#" + p.r + " " + p.name + "</b><br><span style='color:#94a3b8'>" + p.v + " visits &middot; avg " + Math.round(p.avg) + "min &middot; " + p.th + "h total</span>");
+}
+mkrLyr.addTo(map);
+lyrs.places = mkrLyr;
+
+var plEl = document.getElementById("pl");
+for (var i = 0; i < D.places.length; i++) {
+  var p = D.places[i];
+  var c = tColors[p.t] || "#66bb6a";
+  var li = document.createElement("li");
+  li.className = "place-item";
+  li.innerHTML = "<span class='place-dot' style='background:" + c + "'></span><span class='place-name'>" + p.name + "</span><span class='place-count'>" + p.v + "</span>";
+  (function(pp) { li.onclick = function() { map.setView([pp.lat, pp.lon], 15); }; })(p);
+  plEl.appendChild(li);
+}
+
+// === LIFE CALENDAR ===
+var allD = Object.keys(D.steps).sort();
+var mx = 0;
+for (var i = 0; i < allD.length; i++) { var v = D.steps[allD[i]] || 0; if (v > mx) mx = v; }
+if (mx === 0) mx = 1;
+
+var calEl = document.getElementById("cal");
+for (var i = 0; i < allD.length; i++) {
+  var d = allD[i], v = D.steps[d] || 0, r = v / mx;
+  var c = r > 0.7 ? "#66bb6a" : r > 0.4 ? "#388e3c" : r > 0.1 ? "#1b5e20" : "#111827";
+  var div = document.createElement("div");
+  div.className = "cal-day";
+  div.style.background = c;
+  div.title = d.slice(5) + " \u2022 " + v.toLocaleString() + " steps";
+  (function(dd) {
+    div.onclick = function() {
+      document.getElementById("dfrom").value = dd;
+      document.getElementById("dto").value = dd;
+      applyRange();
+    };
+  })(d);
+  calEl.appendChild(div);
+}
+
+// === INIT ===
+applyRange();
+</script>
+</body>
+</html>
