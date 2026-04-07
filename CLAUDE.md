@@ -81,6 +81,22 @@ So anything this Claude session records is also seen by the next Claude session 
 
 Higher-level context also lives at `~/.claude/projects/.../memory/project_home_iot.md`.
 
+## Database Conventions
+
+When working with InfluxDB, always verify the schema first — distinguish between fields and tags before writing queries or ingestion code. Never assume field/tag classifications. HA's InfluxDB integration uses `_measurement = unit_of_measurement` (e.g. `°C`, `%`, `lx`) with `entity_id` as a tag (without domain prefix). Custom measurements (sleep_session, samsung_hr, activity_window, timeline_visit, etc.) use their own schemas. Always check with a sample query before building dashboards or tools.
+
+## Data Import / Parsing
+
+When parsing CSV files (especially Samsung Health exports), validate against actual file headers and sample rows before writing the parser. Print the first 3 rows and confirm column names before proceeding. Samsung Health CSVs have a metadata line before the real header — skip line 0. Column names often have long prefixes like `com.samsung.health.heart_rate.heart_rate` — use substring matching, not exact key lookup.
+
+## Environment
+
+When working in WSL, always check if commands need sudo before running them. Avoid sudo for Docker commands if the user is in the docker group (already configured). The user has passwordless sudo via `/etc/sudoers.d/yuyu-nopasswd`. PowerShell cannot be called from this WSL instance (exec format error) — Windows-side commands must be done by the user or via SSH/HASS.Agent.
+
+## Home Assistant / IoT
+
+For Home Assistant integrations, always reference the exact enum values and entity naming conventions from the official docs or existing config — don't guess. Example: HASS.Agent sensor types use `AudioSensors` (plural, MultiValue) not `AudioSensor` (singular). Verify against source code enums when available. For HA InfluxDB queries, always check `_measurement` + `entity_id` tag + `_field` before building dashboard panels.
+
 ## 🗣 Language policy
 
 - All LLM-consumed documents (this file, system prompts, tool descriptions, observation claims, lessons, English README-style content) — **English**.
