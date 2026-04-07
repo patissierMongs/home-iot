@@ -425,6 +425,102 @@ class LifeAnalytics:
         return self._df
 
 
+    # ================================================================
+    # PHASE 8: Write results to InfluxDB (for Grafana)
+    # ================================================================
+
+    def publish_to_influxdb(self, report: dict[str, Any]) -> int:
+        """Write analysis results back to InfluxDB so Grafana can query them natively."""
+        from influxdb_client import Point
+        from influxdb_client.client.write_api import SYNCHRONOUS
+
+        write_api = self._client.write_api(write_options=SYNCHRONOUS)
+        points = []
+        now = datetime.now(timezone.utc)
+
+        # Correlations
+        for c in report.get("correlations", {}).get("top_correlations", []):
+            p = (Point("analytics_correlation")
+                 .tag("var1", c["var1"]).tag("var2", c["var2"])
+                 .tag("significant", "yes" if c["significant"] else "no")
+                 .tag("strength", c["strength"])
+                 .field("r", float(c["r"]))
+                 .field("p_value", float(c["p"]))
+                 .field("n", int(c["n"]))
+                 .field("abs_r", abs(float(c["r"])))
+                 .time(now))
+            points.append(p)
+
+        # Sleep predictors
+        for p_data in report.get("sleep_predictors", {}).get("top_predictors", []):
+            p = (Point("analytics_predictor")
+                 .tag("target", "sleep_hours")
+                 .tag("predictor", p_data["predictor"])
+                 .tag("lag", str(p_data["lag"]))
+                 .field("r", float(p_data["r"]))
+                 .field("p_value", float(p_data["p"]))
+                 .field("n", int(p_data["n"]))
+                 .field("abs_r", abs(float(p_data["r"])))
+                 .time(now))
+            points.append(p)
+
+        # Anomalies
+        for a in report.get("anomalies", {}).get("top_anomalies", []):
+            try:
+                ts = datetime.strptime(a["date"], "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            except:
+                continue
+            p = (Point("analytics_anomaly")
+                 .tag("metric", a["metric"])
+                 .tag("direction", a["direction"])
+                 .field("value", float(a["value"]))
+                 .field("mean", float(a["mean"]))
+                 .field("z_score", float(a["z_score"]))
+                 .time(ts))
+            points.append(p)
+
+        # Trends
+        for t in report.get("trends_30d", {}).get("trends", []):
+            p = (Point("analytics_trend")
+                 .tag("metric", t["metric"])
+                 .tag("direction", t["direction"])
+                 .tag("window", "30d")
+                 .field("recent_avg", float(t["recent_avg"]))
+                 .field("prior_avg", float(t["prior_avg"]))
+                 .field("change_pct", float(t["change_pct"]))
+                 .time(now))
+            points.append(p)
+
+        # Clusters
+        for name, cl in report.get("clusters", {}).get("clusters", {}).items():
+            p = (Point("analytics_cluster")
+                 .tag("cluster", name)
+                 .field("count", int(cl["count"]))
+                 .field("pct", float(cl["pct"]))
+                 .time(now))
+            for k, v in cl.get("profile", {}).items():
+                p = p.field("avg_" + k, float(v))
+            points.append(p)
+
+        # Weekday vs weekend
+        for w in report.get("weekday_weekend", {}).get("comparisons", []):
+            p = (Point("analytics_weekday_weekend")
+                 .tag("metric", w["metric"])
+                 .tag("significant", "yes" if w["significant"] else "no")
+                 .field("weekday_avg", float(w["weekday_avg"]))
+                 .field("weekend_avg", float(w["weekend_avg"]))
+                 .field("diff_pct", float(w["diff_pct"]))
+                 .field("p_value", float(w["p_value"]))
+                 .time(now))
+            points.append(p)
+
+        # Write
+        for i in range(0, len(points), 5000):
+            write_api.write(bucket=settings.influx_bucket, record=points[i:i+5000])
+
+        return len(points)
+
+
 # === CLI runner ===
 def main():
     import json
@@ -432,9 +528,14 @@ def main():
 
     engine = LifeAnalytics()
     report = engine.generate_full_report(365)
-    engine.close()
 
-    print(json.dumps(report, indent=2, ensure_ascii=False, default=str))
+    # Write to InfluxDB for Grafana
+    n = engine.publish_to_influxdb(report)
+    log.info(f"Published {n} analytics points to InfluxDB")
+
+    engine.close()
+    print(json.dumps(report, indent=2, ensure_ascii=False, default=str)[:3000])
+    print(f"\n... ({n} points published to InfluxDB for Grafana)")
 
 
 if __name__ == "__main__":

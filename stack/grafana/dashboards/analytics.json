@@ -1,0 +1,92 @@
+{
+  "title": "Integrated Analytics",
+  "uid": "home-iot-analytics",
+  "tags": ["home-iot", "analytics"],
+  "timezone": "Asia/Seoul",
+  "schemaVersion": 39,
+  "refresh": "",
+  "time": {"from": "now-1h", "to": "now"},
+  "links": [
+    {"title": "Analyst Chat", "url": "http://localhost:8501", "targetBlank": true, "icon": "external link"}
+  ],
+  "panels": [
+    {
+      "id": 1, "type": "table", "title": "Top Correlations (click → Analyst Chat for details)",
+      "description": "Pairwise Pearson r between all daily metrics. * = statistically significant (p<0.05)",
+      "gridPos": {"h": 10, "w": 12, "x": 0, "y": 0},
+      "datasource": {"type": "influxdb", "uid": "influxdb"},
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "r"}, "properties": [
+            {"id": "custom.cellOptions", "value": {"type": "color-background", "mode": "continuous-GrYlRd"}},
+            {"id": "thresholds", "value": {"steps": [{"color": "blue", "value": -1}, {"color": "green", "value": -0.3}, {"color": "yellow", "value": 0}, {"color": "red", "value": 0.3}]}}
+          ]},
+          {"matcher": {"id": "byName", "options": "significant"}, "properties": [
+            {"id": "custom.width", "value": 60}
+          ]}
+        ]
+      },
+      "options": {"sortBy": [{"displayName": "abs_r", "desc": true}]},
+      "targets": [{
+        "refId": "A", "datasource": {"type": "influxdb", "uid": "influxdb"},
+        "query": "from(bucket:\"home-iot\") |> range(start:-1h) |> filter(fn:(r)=>r._measurement==\"analytics_correlation\") |> pivot(rowKey:[\"_time\"], columnKey:[\"_field\"], valueColumn:\"_value\") |> keep(columns:[\"var1\",\"var2\",\"r\",\"p_value\",\"n\",\"abs_r\",\"significant\",\"strength\"]) |> sort(columns:[\"abs_r\"],desc:true)"
+      }]
+    },
+    {
+      "id": 2, "type": "barchart", "title": "Sleep Predictors (what affects your sleep?)",
+      "description": "Variables that predict sleep_hours. Positive r = more → more sleep. Negative = more → less sleep. (t-1) = yesterday's effect.",
+      "gridPos": {"h": 10, "w": 12, "x": 12, "y": 0},
+      "datasource": {"type": "influxdb", "uid": "influxdb"},
+      "fieldConfig": {"defaults": {"color": {"mode": "continuous-GrYlRd"}}},
+      "options": {"orientation": "horizontal", "xTickLabelRotation": 0},
+      "targets": [{
+        "refId": "A", "datasource": {"type": "influxdb", "uid": "influxdb"},
+        "query": "from(bucket:\"home-iot\") |> range(start:-1h) |> filter(fn:(r)=>r._measurement==\"analytics_predictor\" and r._field==\"r\") |> keep(columns:[\"_value\",\"predictor\"]) |> sort(columns:[\"_value\"],desc:true)"
+      }]
+    },
+    {
+      "id": 3, "type": "table", "title": "Anomalies — Unusual Days",
+      "description": "Days where any metric deviated >2 standard deviations from the mean. High z-score = more unusual.",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 10},
+      "datasource": {"type": "influxdb", "uid": "influxdb"},
+      "options": {"sortBy": [{"displayName": "z_score", "desc": true}]},
+      "targets": [{
+        "refId": "A", "datasource": {"type": "influxdb", "uid": "influxdb"},
+        "query": "from(bucket:\"home-iot\") |> range(start:-365d) |> filter(fn:(r)=>r._measurement==\"analytics_anomaly\") |> pivot(rowKey:[\"_time\"], columnKey:[\"_field\"], valueColumn:\"_value\") |> keep(columns:[\"_time\",\"metric\",\"direction\",\"value\",\"mean\",\"z_score\"]) |> sort(columns:[\"z_score\"],desc:true) |> limit(n:20)"
+      }]
+    },
+    {
+      "id": 4, "type": "barchart", "title": "30-Day Trends — What's Changing?",
+      "description": "Recent 30 days vs prior 30 days. Positive = increasing, negative = decreasing.",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 10},
+      "datasource": {"type": "influxdb", "uid": "influxdb"},
+      "fieldConfig": {"defaults": {"unit": "percent", "color": {"mode": "continuous-GrYlRd"}}},
+      "options": {"orientation": "horizontal"},
+      "targets": [{
+        "refId": "A", "datasource": {"type": "influxdb", "uid": "influxdb"},
+        "query": "from(bucket:\"home-iot\") |> range(start:-1h) |> filter(fn:(r)=>r._measurement==\"analytics_trend\" and r._field==\"change_pct\") |> keep(columns:[\"_value\",\"metric\"]) |> sort(columns:[\"_value\"],desc:true)"
+      }]
+    },
+    {
+      "id": 5, "type": "barchart", "title": "Weekday vs Weekend",
+      "description": "Statistically significant differences between weekday and weekend behavior.",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 18},
+      "datasource": {"type": "influxdb", "uid": "influxdb"},
+      "targets": [{
+        "refId": "A", "datasource": {"type": "influxdb", "uid": "influxdb"},
+        "query": "from(bucket:\"home-iot\") |> range(start:-1h) |> filter(fn:(r)=>r._measurement==\"analytics_weekday_weekend\" and r._field==\"diff_pct\" and r.significant==\"yes\") |> keep(columns:[\"_value\",\"metric\"]) |> sort(columns:[\"_value\"],desc:true)"
+      }]
+    },
+    {
+      "id": 6, "type": "piechart", "title": "Day Type Clusters",
+      "description": "Your days clustered by lifestyle pattern. Which type of day do you have most?",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 18},
+      "datasource": {"type": "influxdb", "uid": "influxdb"},
+      "targets": [{
+        "refId": "A", "datasource": {"type": "influxdb", "uid": "influxdb"},
+        "query": "from(bucket:\"home-iot\") |> range(start:-1h) |> filter(fn:(r)=>r._measurement==\"analytics_cluster\" and r._field==\"pct\") |> keep(columns:[\"_value\",\"cluster\"])"
+      }]
+    }
+  ]
+}
