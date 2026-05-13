@@ -9,6 +9,8 @@ from typing import Any, Protocol
 
 import yaml
 
+from .routines.night import plan_night_routine
+
 
 class HAStateClient(Protocol):
     async def get_state(self, entity_id: str) -> dict[str, Any]: ...
@@ -61,6 +63,7 @@ class ContextBuilder:
             "supplements": await self._read_supplements(),
             "events_today": self._read_events_for_date(now.date().isoformat()),
         }
+        context["recommended_actions"] = plan_night_routine(context, now=now)
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
         self.output_path.write_text(
             json.dumps(context, ensure_ascii=False, indent=2, sort_keys=True),

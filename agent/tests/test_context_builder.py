@@ -71,8 +71,8 @@ def test_context_builder_reads_contract_states_and_today_events(tmp_path: Path) 
             "sensor.garmin_sleep_score": "72",
             "sensor.bedroom_co2": {"state": "910", "attributes": {"unit_of_measurement": "ppm"}},
             "sensor.bedroom_temperature": "22.8",
-            "input_boolean.supplement_magnesium_taken_today": "on",
-            "input_boolean.supplement_omega3_taken_today": "off",
+            "input_boolean.supplement_magnesium_taken_today": "off",
+            "input_boolean.supplement_omega3_taken_today": "on",
             "sensor.computer_current_mode": "video",
             "sensor.computer_screen_after_22_minutes": "38",
         }
@@ -92,11 +92,16 @@ def test_context_builder_reads_contract_states_and_today_events(tmp_path: Path) 
     assert context["health"]["sleep_score"] == 72
     assert context["environment"]["bedroom_co2"] == 910
     assert context["environment"]["bedroom_temperature"] == 22.8
-    assert context["supplements"] == {"magnesium": "taken", "omega3": "missing"}
+    assert context["supplements"] == {"magnesium": "missing", "omega3": "taken"}
     assert context["computer"]["current_mode"] == "video"
     assert context["computer"]["screen_after_22_minutes"] == 38
     assert context["events_today"][0]["domain"] == "supplement"
     assert context["events_today"][0]["entity"] == "magnesium"
+    assert [action["id"] for action in context["recommended_actions"]] == [
+        "take_magnesium",
+        "ventilate_bedroom",
+        "dim_lights_for_bedtime",
+    ]
 
     saved = json.loads((tmp_path / "context" / "now.json").read_text(encoding="utf-8"))
     assert saved == context

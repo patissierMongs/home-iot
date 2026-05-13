@@ -109,7 +109,16 @@ presence
 routines
 supplements
 events_today
+recommended_actions
 ```
+
+`recommended_actions` is currently produced by the deterministic night routine
+planner. It is intentionally simple and non-LLM: it proposes candidate actions
+such as supplement reminders, bedroom ventilation, and bedtime light dimming
+from the current context.
+
+The planner defers low-priority night routine actions during meetings or long
+coding focus blocks.
 
 ## Current MVP Behavior
 
