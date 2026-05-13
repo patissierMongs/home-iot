@@ -18,6 +18,7 @@ from typing import Any
 import structlog
 
 from .bridges.activitywatch import ActivityWatchBridge
+from .context import ContextBuilder
 from .ha import HAClient
 from .llm import LLM
 from .rules import RuleEngine
@@ -84,6 +85,12 @@ class Agent:
             ledger_dir=agent_dir / "data" / "events",
             ha=self.ha,
         )
+        self.context_builder = ContextBuilder.from_yaml(
+            ha=self.ha,
+            entity_contract_path=agent_dir / "config" / "entity_contract.yaml",
+            event_dir=agent_dir / "data" / "events",
+            output_path=agent_dir / "data" / "context" / "now.json",
+        )
         self.llm = LLM(self.tools) if enable_llm else None
         self.aw = ActivityWatchBridge() if enable_aw else None
         self._enable_llm = enable_llm
@@ -111,6 +118,7 @@ class Agent:
         return entity_id.startswith(("binary_sensor.", "person.", "device_tracker."))
 
     async def handle_event(self, event: dict[str, Any]) -> None:
+        semantic_event = None
         semantic_runtime = getattr(self, "semantic_runtime", None)
         if semantic_runtime is not None:
             try:
@@ -124,6 +132,15 @@ class Agent:
                     )
             except Exception as e:
                 log.error("agent.semantic_error", error=str(e))
+
+        if semantic_event is not None:
+            context_builder = getattr(self, "context_builder", None)
+            if context_builder is not None:
+                try:
+                    await context_builder.build_now()
+                    log.info("agent.context_updated")
+                except Exception as e:
+                    log.error("agent.context_error", error=str(e))
 
         consumed = await self.rules.dispatch(event)
         if consumed:

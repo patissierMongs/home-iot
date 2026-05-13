@@ -24,10 +24,20 @@ class FakeSemanticRuntime:
         return object()
 
 
+class FakeContextBuilder:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    async def build_now(self) -> dict[str, Any]:
+        self.calls += 1
+        return {"ok": True}
+
+
 def test_agent_records_semantic_events_before_rule_and_llm_processing() -> None:
     agent = Agent.__new__(Agent)
     agent.rules = FakeRules()
     agent.semantic_runtime = FakeSemanticRuntime()
+    agent.context_builder = FakeContextBuilder()
     agent._enable_llm = False
     agent.llm = None
 
@@ -43,6 +53,7 @@ def test_agent_records_semantic_events_before_rule_and_llm_processing() -> None:
     asyncio.run(agent.handle_event(ha_event))
 
     assert agent.semantic_runtime.events == [ha_event]
+    assert agent.context_builder.calls == 1
     assert agent.rules.events == [ha_event]
 
 
