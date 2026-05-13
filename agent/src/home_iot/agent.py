@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 from typing import Any
 
 import structlog
@@ -20,6 +21,7 @@ from .bridges.activitywatch import ActivityWatchBridge
 from .ha import HAClient
 from .llm import LLM
 from .rules import RuleEngine
+from .semantic_runtime import SemanticEventRuntime
 from .tools import Tools
 
 log = structlog.get_logger(__name__)
@@ -76,6 +78,12 @@ class Agent:
         self.ha = HAClient()
         self.tools = Tools(self.ha)
         self.rules = RuleEngine(self.tools)
+        agent_dir = Path(__file__).resolve().parents[2]
+        self.semantic_runtime = SemanticEventRuntime.from_yaml(
+            config_path=agent_dir / "config" / "semantic_entities.yaml",
+            ledger_dir=agent_dir / "data" / "events",
+            ha=self.ha,
+        )
         self.llm = LLM(self.tools) if enable_llm else None
         self.aw = ActivityWatchBridge() if enable_aw else None
         self._enable_llm = enable_llm
@@ -103,6 +111,20 @@ class Agent:
         return entity_id.startswith(("binary_sensor.", "person.", "device_tracker."))
 
     async def handle_event(self, event: dict[str, Any]) -> None:
+        semantic_runtime = getattr(self, "semantic_runtime", None)
+        if semantic_runtime is not None:
+            try:
+                semantic_event = await semantic_runtime.handle_ha_event(event)
+                if semantic_event is not None:
+                    log.info(
+                        "agent.semantic_event",
+                        domain=semantic_event.domain,
+                        type=semantic_event.type,
+                        entity=semantic_event.entity,
+                    )
+            except Exception as e:
+                log.error("agent.semantic_error", error=str(e))
+
         consumed = await self.rules.dispatch(event)
         if consumed:
             return
