@@ -1,0 +1,70 @@
+# Entity contract for the HA-centered Personal Home OS agent.
+#
+# Home Assistant remains the source of truth for all device/sensor state.
+# The agent reads these entity ids, maps events into semantic meaning, and acts via
+# HA service calls. Sensor/hardware inference belongs in HA integrations,
+# template sensors, helpers, and automations — not in the agent.
+
+health:
+  body_battery: sensor.garmin_body_battery
+  sleep_score: sensor.garmin_sleep_score
+  sleep_duration: sensor.garmin_sleep_duration
+  deep_sleep_minutes: sensor.garmin_deep_sleep_minutes
+  hrv_status: sensor.garmin_hrv_status
+  resting_heart_rate: sensor.garmin_resting_heart_rate
+  stress_level: sensor.garmin_stress_level
+  last_activity_type: sensor.garmin_last_activity_type
+  last_activity_end_time: sensor.garmin_last_activity_end_time
+  last_activity_training_effect: sensor.garmin_last_activity_training_effect
+
+environment:
+  bedroom_temperature: sensor.bedroom_temperature
+  bedroom_humidity: sensor.bedroom_humidity
+  bedroom_co2: sensor.bedroom_co2
+  bedroom_pm25: sensor.bedroom_pm25
+  bedroom_tvoc: sensor.bedroom_tvoc
+  livingroom_temperature: sensor.livingroom_temperature
+  livingroom_humidity: sensor.livingroom_humidity
+  livingroom_co2: sensor.livingroom_co2
+
+actuators:
+  bedroom_light: light.bedroom
+  desk_light: light.desk
+  curtain: cover.keoteun
+  air_purifier: fan.air_purifier
+
+presence:
+  user_home: binary_sensor.user_home
+  user_sleeping: binary_sensor.user_sleeping
+  user_at_desk: binary_sensor.user_at_desk
+
+computer:
+  current_mode: sensor.computer_current_mode
+  focus_block_minutes: sensor.computer_focus_block_minutes
+  screen_after_22_minutes: sensor.computer_screen_after_22_minutes
+  total_active_today_minutes: sensor.computer_total_active_today_minutes
+  context_switch_count_today: sensor.computer_context_switch_count_today
+  in_meeting: binary_sensor.computer_in_meeting
+
+routines:
+  shower_done_today: binary_sensor.shower_done_today
+  workout_done_today: binary_sensor.workout_done_today
+  night_briefing_done: input_boolean.night_briefing_done
+  morning_briefing_done: input_boolean.morning_briefing_done
+  post_workout_recovery_done: input_boolean.post_workout_recovery_done
+  target_bedtime: input_datetime.target_bedtime
+  target_wake_time: input_datetime.target_wake_time
+
+supplements:
+  magnesium:
+    present: binary_sensor.supplement_magnesium_present
+    taken_today: input_boolean.supplement_magnesium_taken_today
+    last_taken: input_datetime.supplement_magnesium_last_taken
+  omega3:
+    present: binary_sensor.supplement_omega3_present
+    taken_today: input_boolean.supplement_omega3_taken_today
+    last_taken: input_datetime.supplement_omega3_last_taken
+  vitamin_d:
+    present: binary_sensor.supplement_vitamin_d_present
+    taken_today: input_boolean.supplement_vitamin_d_taken_today
+    last_taken: input_datetime.supplement_vitamin_d_last_taken

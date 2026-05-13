@@ -1,0 +1,49 @@
+# Mapping from Home Assistant state_changed events to trusted semantic events.
+#
+# The agent does not infer hardware reality. It trusts HA entity states and only
+# translates them into life-domain events for journaling, context building, and
+# LLM reasoning.
+
+supplements:
+  magnesium:
+    display_name: 마그네슘
+    present_entity: binary_sensor.supplement_magnesium_present
+    taken_transition: ["on", "off"]
+    taken_helper: input_boolean.supplement_magnesium_taken_today
+    last_taken_helper: input_datetime.supplement_magnesium_last_taken
+    once_per_day: true
+    trusted: true
+
+  omega3:
+    display_name: 오메가3
+    present_entity: binary_sensor.supplement_omega3_present
+    taken_transition: ["on", "off"]
+    taken_helper: input_boolean.supplement_omega3_taken_today
+    last_taken_helper: input_datetime.supplement_omega3_last_taken
+    once_per_day: true
+    trusted: true
+
+  vitamin_d:
+    display_name: 비타민D
+    present_entity: binary_sensor.supplement_vitamin_d_present
+    taken_transition: ["on", "off"]
+    taken_helper: input_boolean.supplement_vitamin_d_taken_today
+    last_taken_helper: input_datetime.supplement_vitamin_d_last_taken
+    once_per_day: true
+    trusted: true
+
+presence:
+  user:
+    entity: binary_sensor.user_home
+    arrived_transition: ["off", "on"]
+    left_transition: ["on", "off"]
+    trusted: true
+
+routines:
+  shower:
+    done_entity: binary_sensor.shower_done_today
+    done_transition: ["off", "on"]
+    trusted: true
+
+computer:
+  current_mode_entity: sensor.computer_current_mode
