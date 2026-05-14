@@ -7,7 +7,11 @@ pub fn run(addr: &str) -> std::io::Result<()> {
 
     for stream in listener.incoming() {
         match stream {
-            Ok(stream) => handle_connection(stream)?,
+            Ok(stream) => {
+                if let Err(err) = handle_connection(stream) {
+                    eprintln!("connection handling error: {err}");
+                }
+            }
             Err(err) => eprintln!("connection error: {err}"),
         }
     }
@@ -17,9 +21,10 @@ pub fn run(addr: &str) -> std::io::Result<()> {
 
 fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
     let mut reader = BufReader::new(stream.try_clone()?);
-    let mut request_line = String::new();
-    reader.read_line(&mut request_line)?;
+    let mut request_line = Vec::new();
+    reader.read_until(b'\n', &mut request_line)?;
 
+    let request_line = String::from_utf8_lossy(&request_line);
     let path = request_line.split_whitespace().nth(1).unwrap_or("/");
     let response = route(path);
 
@@ -234,6 +239,27 @@ mod tests {
         assert_eq!(response.content_type, "application/json; charset=utf-8");
         assert!(response.body.contains(r#""runtime": "rust""#));
         assert!(response.body.contains("semantic.mapper"));
+    }
+
+    #[test]
+    fn invalid_utf8_request_does_not_crash_server() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+
+        thread::spawn(move || {
+            let (stream, _) = listener.accept().unwrap();
+            handle_connection(stream).unwrap();
+        });
+
+        let mut stream = TcpStream::connect(addr).unwrap();
+        stream
+            .write_all(b"GET /\xff HTTP/1.1\r\nHost: localhost\r\n\r\n")
+            .unwrap();
+
+        let mut response = Vec::new();
+        stream.read_to_end(&mut response).unwrap();
+
+        assert!(String::from_utf8_lossy(&response).starts_with("HTTP/1.1"));
     }
 
     #[test]
