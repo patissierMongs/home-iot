@@ -1,0 +1,108 @@
+{
+  "date": "2026-05-14",
+  "time": "2026-05-14T22:18:00+09:00",
+  "home_assistant": "not_connected_yet",
+  "health": {
+    "body_battery": 31,
+    "sleep_score": 72,
+    "stress": "elevated"
+  },
+  "environment": {
+    "bedroom_co2": 1120,
+    "bedroom_temperature": 22.8,
+    "bedroom_light_brightness": 65
+  },
+  "computer": {
+    "current_mode": "video",
+    "screen_after_22_minutes": 38,
+    "in_meeting": false,
+    "focus_block_minutes": 0
+  },
+  "supplements": {
+    "magnesium": "missing",
+    "omega3": "taken"
+  },
+  "routines": {
+    "night_briefing_done": false
+  },
+  "events_today": [
+    {
+      "ts": "2026-05-14T13:11:04Z",
+      "domain": "supplement",
+      "type": "taken",
+      "entity": "magnesium",
+      "source": "ha",
+      "source_entity": "binary_sensor.supplement_magnesium_present",
+      "old_state": "on",
+      "new_state": "off",
+      "trusted": true
+    }
+  ],
+  "recommended_actions": [
+    {
+      "id": "take_magnesium",
+      "title": "마그네슘 챙기기",
+      "priority": "medium",
+      "message": "마그네슘은 아직 안 챙기셨어요.",
+      "reason": [
+        "오늘 magnesium taken 이벤트 없음"
+      ],
+      "safety": {
+        "auto_executable": false,
+        "requires_approval": false
+      },
+      "ha_service": null
+    },
+    {
+      "id": "ventilate_bedroom",
+      "title": "침실 10분 환기",
+      "priority": "medium",
+      "message": "침실 CO2가 높아서 10분 환기를 추천해요.",
+      "reason": [
+        "bedroom_co2=1120ppm",
+        "취침 시간대",
+        "회의 중 아님"
+      ],
+      "safety": {
+        "auto_executable": false,
+        "requires_approval": true
+      },
+      "ha_service": null
+    },
+    {
+      "id": "dim_lights_for_bedtime",
+      "title": "침실 조명 낮추기",
+      "priority": "low",
+      "message": "취침 준비를 위해 침실 조명을 낮춰둘 수 있어요.",
+      "reason": [
+        "bedroom_light_brightness=65pct",
+        "취침 루틴"
+      ],
+      "safety": {
+        "auto_executable": true,
+        "requires_approval": false
+      },
+      "ha_service": {
+        "domain": "light",
+        "service": "turn_on",
+        "entity_id": "light.bedroom",
+        "brightness_pct": 30
+      }
+    }
+  ],
+  "briefing": {
+    "text": "침실 CO2가 조금 높고, 마그네슘은 아직 안 챙기셨어요. 자기 전 조명은 낮춰두는 게 좋아요.",
+    "source_facts": [
+      "bedroom_co2=1120ppm",
+      "magnesium=missing",
+      "body_battery=31"
+    ],
+    "actions_included": [
+      "take_magnesium",
+      "ventilate_bedroom",
+      "dim_lights_for_bedtime"
+    ],
+    "spoken": false,
+    "last_briefing_time": null
+  }
+}

@@ -1,0 +1,1 @@
+{"ts": "2026-05-14T13:11:04Z", "domain": "supplement", "type": "taken", "entity": "magnesium", "source": "ha", "source_entity": "binary_sensor.supplement_magnesium_present", "old_state": "on", "new_state": "off", "trusted": true}
