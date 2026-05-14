@@ -1,0 +1,17 @@
+supplements:
+  magnesium:
+    present_entity: binary_sensor.supplement_magnesium_present
+    taken_transition: ["on", "off"]
+    taken_helper: input_boolean.supplement_magnesium_taken_today
+    last_taken_helper: input_datetime.supplement_magnesium_last_taken
+
+presence:
+  user_home:
+    entity: binary_sensor.user_home
+    arrived_transition: ["off", "on"]
+    left_transition: ["on", "off"]
+
+routines:
+  shower:
+    entity: binary_sensor.shower_done_today
+    done_transition: ["off", "on"]

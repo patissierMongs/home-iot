@@ -1,0 +1,12 @@
+home_assistant:
+  base_url_env: HA_BASE_URL
+  token_env: HA_TOKEN
+
+paths:
+  event_dir: data/events
+  context_path: data/context/now.json
+
+safety:
+  auto_execute_actions: false
+  allowlisted_action_ids:
+    - dim_lights_for_bedtime

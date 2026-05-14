@@ -1,0 +1,22 @@
+health:
+  body_battery: sensor.garmin_body_battery
+  sleep_score: sensor.garmin_sleep_score
+
+environment:
+  bedroom_co2: sensor.bedroom_co2
+  bedroom_temperature: sensor.bedroom_temperature
+
+computer:
+  current_mode: sensor.computer_current_mode
+  focus_block_minutes: sensor.computer_focus_block_minutes
+  screen_after_22_minutes: sensor.computer_screen_after_22_minutes
+  in_meeting: binary_sensor.computer_in_meeting
+
+routines:
+  night_briefing_done: input_boolean.night_briefing_done
+  target_bedtime: input_datetime.target_bedtime
+
+supplements:
+  magnesium:
+    taken_today: input_boolean.supplement_magnesium_taken_today
+    last_taken: input_datetime.supplement_magnesium_last_taken
