@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run analytics engine and publish results to InfluxDB for Grafana.
 Schedule: daily via cron or systemd timer.
-  0 6 * * * cd /home/yuyu/home-iot/agent && uv run python scripts/refresh_analytics.py
+  0 6 * * * cd $HOME/home-iot/agent && uv run python scripts/refresh_analytics.py
 """
 import logging
 import sys

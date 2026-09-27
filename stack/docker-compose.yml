@@ -80,7 +80,7 @@ services:
     image: telegraf:latest
     container_name: telegraf
     restart: unless-stopped
-    hostname: yuyu-wsl
+    hostname: home-server
     user: "telegraf:989"   # telegraf 사용자 + 호스트 docker gid (989)
     volumes:
       - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro

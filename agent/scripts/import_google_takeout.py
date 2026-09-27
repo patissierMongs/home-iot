@@ -329,7 +329,7 @@ def import_saved_places(takeout_dir: Path) -> int:
 def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 
-    takeout_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("/mnt/c/Users/upica/Downloads/Takeout")
+    takeout_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(os.environ.get("HOME_IOT_DOWNLOADS", Path.home() / "Downloads")) / "Takeout"
     if not takeout_dir.exists():
         print(f"Takeout dir not found: {takeout_dir}")
         sys.exit(1)

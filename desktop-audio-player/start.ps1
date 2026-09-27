@@ -4,7 +4,7 @@
 #
 # Or register with Task Scheduler for a "run at login, hidden" behavior:
 #   schtasks /Create /SC ONLOGON /TN "home-iot-audio" `
-#     /TR "powershell -NoProfile -WindowStyle Hidden -File C:\Users\upica\home-iot\desktop-audio-player\start.ps1" `
+#     /TR "powershell -NoProfile -WindowStyle Hidden -File %USERPROFILE%\home-iot\desktop-audio-player\start.ps1" `
 #     /RL HIGHEST
 
 $ErrorActionPreference = 'Stop'

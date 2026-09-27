@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Build Life Explorer v3 — full health overlay + dual range slider + speed control."""
 import json
+import os
 
 with open("/tmp/explorer_v3.json") as f:
     D = json.load(f)
@@ -268,7 +269,7 @@ html = (
 '</script></body></html>\n'
 )
 
-out = "/mnt/c/Users/upica/Downloads/home-iot-life-explorer.html"
+out = os.environ.get("LIFE_EXPLORER_OUT", os.path.expanduser("~/Downloads/home-iot-life-explorer.html"))
 with open(out, "w", encoding="utf-8") as f:
     f.write(html)
 print("OK: " + out + " (" + str(len(html)//1024) + "KB)")

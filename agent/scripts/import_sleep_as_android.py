@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Sleep as Android CSV 일회성 임포터 실행."""
 import json
+import os
 import sys
 from pathlib import Path
 
 from home_iot.importers.sleep_as_android import import_to_influx
 
-DEFAULT_PATH = Path("/mnt/c/Users/upica/Downloads/Sleep as Android Data/sleep-export.csv")
+DEFAULT_PATH = Path(os.environ.get("HOME_IOT_DOWNLOADS", Path.home() / "Downloads")) / "Sleep as Android Data" / "sleep-export.csv"
 
 
 def main() -> None:

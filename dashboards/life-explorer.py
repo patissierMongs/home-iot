@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Generate the Life Explorer HTML dashboard from pre-collected data."""
 import json
+import os
 
 with open("/tmp/explorer_data.json") as f:
     data = json.load(f)
@@ -255,7 +256,7 @@ applyFilter();
 </body>
 </html>'''
 
-out = "/mnt/c/Users/upica/Downloads/home-iot-life-explorer.html"
+out = os.environ.get("LIFE_EXPLORER_OUT", os.path.expanduser("~/Downloads/home-iot-life-explorer.html"))
 with open(out, "w", encoding="utf-8") as f:
     f.write(html)
 print(f"OK: {out} ({len(html)//1024}KB)")

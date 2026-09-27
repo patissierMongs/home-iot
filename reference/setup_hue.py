@@ -7,6 +7,7 @@ Hue Bridge 초기 설정 - API 키(application key) 발급 헬퍼.
   2. 30초 안에 이 스크립트를 실행한다
   3. 발급된 키가 .env 파일에 자동 저장된다
 """
+import os
 import sys
 import requests
 import urllib3
@@ -14,7 +15,7 @@ from pathlib import Path
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-HUE_BRIDGE_IP = "192.168.50.205"
+HUE_BRIDGE_IP = os.environ.get("HUE_BRIDGE_IP", "192.0.2.10")
 DEVICE_TYPE = "home-iot#wsl"
 
 ENV_PATH = Path(__file__).parent / ".env"

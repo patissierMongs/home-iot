@@ -213,7 +213,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket:\"home-iot\") |> range(start:-5m) |> filter(fn:(r)=>r._measurement==\"mem\" and r._field==\"used_percent\" and r.host==\"yuyu-wsl\") |> last()"
+          "query": "from(bucket:\"home-iot\") |> range(start:-5m) |> filter(fn:(r)=>r._measurement==\"mem\" and r._field==\"used_percent\" and r.host==\"home-server\") |> last()"
         }
       ]
     },
@@ -393,7 +393,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket:\"home-iot\") |> range(start:-6h) |> filter(fn:(r)=>r._measurement==\"cpu\" and r._field==\"usage_system\" and r.cpu==\"cpu-total\" and r.host==\"yuyu-wsl\") |> aggregateWindow(every:30s,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"CPU\")"
+          "query": "from(bucket:\"home-iot\") |> range(start:-6h) |> filter(fn:(r)=>r._measurement==\"cpu\" and r._field==\"usage_system\" and r.cpu==\"cpu-total\" and r.host==\"home-server\") |> aggregateWindow(every:30s,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"CPU\")"
         },
         {
           "refId": "B",
@@ -401,7 +401,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket:\"home-iot\") |> range(start:-6h) |> filter(fn:(r)=>r._measurement==\"mem\" and r._field==\"used_percent\" and r.host==\"yuyu-wsl\") |> aggregateWindow(every:30s,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"Memory\")"
+          "query": "from(bucket:\"home-iot\") |> range(start:-6h) |> filter(fn:(r)=>r._measurement==\"mem\" and r._field==\"used_percent\" and r.host==\"home-server\") |> aggregateWindow(every:30s,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"Memory\")"
         }
       ]
     },
