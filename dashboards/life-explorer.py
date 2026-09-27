@@ -105,7 +105,7 @@ const PLACES = {js_places};
 const ACTS = {js_activities};
 const DAILY = {js_daily};
 
-const map = L.map("map").setView([37.45,126.89],12);
+const map = L.map("map").setView([37.5665,126.978],12);
 L.tileLayer("https://{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png",{{maxZoom:19}}).addTo(map);
 
 let trailLayer=null, heatLayer=null, actLayer=null, markerLayer=null;

@@ -101,7 +101,7 @@ html = (
 'var D=' + DATA_JS + ';\n'
 'D.gps.sort(function(a,b){return a[2]<b[2]?-1:1;});\n'
 '\n'
-'var map=L.map("map").setView([37.45,126.89],12);\n'
+'var map=L.map("map").setView([37.5665,126.978],12);\n'
 'L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{maxZoom:19}).addTo(map);\n'
 '\n'
 'var trail=null,heat=null,actL=null,curMk=null,ptimer=null;\n'
