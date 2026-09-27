@@ -215,7 +215,7 @@ function renderMapViz(parent, spec) {
   const el = document.createElement('div'); el.className = 'map-container'; el.id = 'map-'+(++vizCount);
   parent.appendChild(el);
   setTimeout(() => {
-    const center = spec.center || [37.45, 126.89];
+    const center = spec.center || [37.5665, 126.978];
     const map = L.map(el.id).setView(center, spec.zoom||13);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
       {attribution:'© OSM © CARTO', maxZoom:19}).addTo(map);

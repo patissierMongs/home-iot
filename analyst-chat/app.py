@@ -509,7 +509,7 @@ life data (sleep, heart rate, stress, activity, environment). Answer in Korean.
 ### Home Environment (recent months via HA sensors)
 - Measurement = unit of measurement, entity_id = tag (without domain prefix)
 - `°C` + entity_id: keompyuteo_onseubdo_temperature, cimdaeonseubdo_temperature, hwajangsil_onseubdo_temperature
-- `%` + entity_id: *_humidity, yuyu_cpuload_2, yuyu_gpuload_2
+- `%` + entity_id: *_humidity, lab_pc_cpuload_2, lab_pc_gpuload_2
 - `lx`: illuminance sensors
 - `W`: jeseubgi_power (dehumidifier)
 

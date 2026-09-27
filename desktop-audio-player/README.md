@@ -11,7 +11,7 @@ TTS or arbitrary mp3 URLs for the home-iot agent to notify the user.
          │  mqtt publish  home-iot/audio/speak
          │  {"text": "...", "voice": "Hanna"}
          ▼
- Mosquitto  (WSL, 192.168.50.108:1883)
+ Mosquitto  (WSL, <HOST_IP>:1883)
          │
          │  subscribed
          ▼
@@ -39,7 +39,7 @@ also be driven directly from the agent daemon, the MQTT CLI, or ad-hoc scripts.
 ## Install
 
 1. Copy the whole `desktop-audio-player/` folder to the Windows side, e.g.
-   `C:\Users\upica\home-iot\desktop-audio-player\`.
+   `%USERPROFILE%\home-iot\desktop-audio-player\`.
 2. Make sure Python 3.11+ is installed on Windows.
 3. Copy `secrets.ps1.example` → `secrets.ps1` and fill in the API key.
 4. First run: `.\start.ps1` — it creates a venv and installs deps automatically.
@@ -59,10 +59,10 @@ Publish JSON to `home-iot/audio/speak`:
 {"text": "...", "voice_id": "zgDzx5jLLCqEp6Fl7Kl7"}
 
 // Play a remote mp3
-{"url": "http://192.168.50.108:8123/path/to/file.mp3"}
+{"url": "http://<HOST_IP>:8123/path/to/file.mp3"}
 
 // Play a local file
-{"file": "C:/Users/upica/Music/chime.mp3"}
+{"file": "C:/Users/<you>/Music/chime.mp3"}
 ```
 
 ## Known voices (extend `VOICE_IDS` in `audio_player.py`)

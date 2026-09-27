@@ -64,7 +64,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket:\"home-iot\") |> range(start:-6h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"yuyu_cpuload_2\" and r._field==\"value\") |> last()"
+          "query": "from(bucket:\"home-iot\") |> range(start:-6h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"lab_pc_cpuload_2\" and r._field==\"value\") |> last()"
         }
       ]
     },
@@ -119,7 +119,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket:\"home-iot\") |> range(start:-6h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"yuyu_gpuload_2\" and r._field==\"value\") |> last()"
+          "query": "from(bucket:\"home-iot\") |> range(start:-6h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"lab_pc_gpuload_2\" and r._field==\"value\") |> last()"
         }
       ]
     },
@@ -174,7 +174,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket:\"home-iot\") |> range(start:-6h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"yuyu_memoryusage_2\" and r._field==\"value\") |> last()"
+          "query": "from(bucket:\"home-iot\") |> range(start:-6h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"lab_pc_memoryusage_2\" and r._field==\"value\") |> last()"
         }
       ]
     },
@@ -216,7 +216,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket:\"home-iot\") |> range(start:-5m) |> filter(fn:(r)=>r._measurement==\"sensor.yuyu_activewindow\" and r._field==\"value\") |> last()"
+          "query": "from(bucket:\"home-iot\") |> range(start:-5m) |> filter(fn:(r)=>r._measurement==\"sensor.lab_pc_activewindow\" and r._field==\"value\") |> last()"
         }
       ]
     },
@@ -252,7 +252,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket:\"home-iot\") |> range(start:-12h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"yuyu_cpuload_2\" and r._field==\"value\") |> aggregateWindow(every:1m,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"CPU\")"
+          "query": "from(bucket:\"home-iot\") |> range(start:-12h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"lab_pc_cpuload_2\" and r._field==\"value\") |> aggregateWindow(every:1m,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"CPU\")"
         },
         {
           "refId": "B",
@@ -260,7 +260,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket:\"home-iot\") |> range(start:-12h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"yuyu_gpuload_2\" and r._field==\"value\") |> aggregateWindow(every:1m,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"GPU\")"
+          "query": "from(bucket:\"home-iot\") |> range(start:-12h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"lab_pc_gpuload_2\" and r._field==\"value\") |> aggregateWindow(every:1m,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"GPU\")"
         },
         {
           "refId": "C",
@@ -268,7 +268,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket:\"home-iot\") |> range(start:-12h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"yuyu_memoryusage_2\" and r._field==\"value\") |> aggregateWindow(every:1m,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"RAM\")"
+          "query": "from(bucket:\"home-iot\") |> range(start:-12h) |> filter(fn:(r)=>r._measurement==\"%\" and r.entity_id==\"lab_pc_memoryusage_2\" and r._field==\"value\") |> aggregateWindow(every:1m,fn:mean,createEmpty:false) |> keep(columns:[\"_time\",\"_value\"]) |> yield(name:\"RAM\")"
         }
       ]
     },

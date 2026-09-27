@@ -581,7 +581,7 @@ var D = {gps:[],places:[],acts:[],hr:{},stress:{},spo2:{},steps:{},sleep:{},temp
 D.gps.sort(function(a,b){ return a[2] < b[2] ? -1 : 1; });
 
 // === MAP SETUP ===
-var map = L.map("map", {zoomControl: false}).setView([37.45, 126.89], 12);
+var map = L.map("map", {zoomControl: false}).setView([37.5665, 126.978], 12);
 L.control.zoom({position: "bottomright"}).addTo(map);
 L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {maxZoom: 19}).addTo(map);
 

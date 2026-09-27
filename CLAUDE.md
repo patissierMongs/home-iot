@@ -70,7 +70,7 @@ So anything this Claude session records is also seen by the next Claude session 
 ## 📂 Project structure overview
 
 ```
-/home/yuyu/home-iot/
+home-iot/
 ├── stack/               Docker Compose: HA, Mosquitto, InfluxDB, Grafana, Ollama, Telegraf
 ├── agent/               Python agent
 │   ├── src/home_iot/    ha / tools / llm / rules / agent / bridges / importers
@@ -91,7 +91,7 @@ When parsing CSV files (especially Samsung Health exports), validate against act
 
 ## Environment
 
-When working in WSL, always check if commands need sudo before running them. Avoid sudo for Docker commands if the user is in the docker group (already configured). The user has passwordless sudo via `/etc/sudoers.d/yuyu-nopasswd`. PowerShell cannot be called from this WSL instance (exec format error) — Windows-side commands must be done by the user or via SSH/HASS.Agent.
+When working in WSL, always check if commands need sudo before running them. Avoid sudo for Docker commands if the user is in the docker group (already configured). The user has passwordless sudo via `/etc/sudoers.d/<user>-nopasswd`. PowerShell cannot be called from this WSL instance (exec format error) — Windows-side commands must be done by the user or via SSH/HASS.Agent.
 
 ## Home Assistant / IoT
 

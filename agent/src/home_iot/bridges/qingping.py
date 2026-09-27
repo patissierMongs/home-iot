@@ -144,8 +144,8 @@ async def main():
                     structlog.dev.ConsoleRenderer()],
     )
 
-    key = os.environ.get("QINGPING_APP_KEY", "_sL3qptvR")
-    secret = os.environ.get("QINGPING_APP_SECRET", "cef89be82fd111f1858c52540055385a")
+    key = os.environ.get("QINGPING_APP_KEY", "")
+    secret = os.environ.get("QINGPING_APP_SECRET", "")
 
     import paho.mqtt.client as mqtt
     client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2, client_id="qingping-bridge")

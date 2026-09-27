@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Generate the Life Explorer HTML dashboard from pre-collected data."""
 import json
+import os
 
 with open("/tmp/explorer_data.json") as f:
     data = json.load(f)
@@ -104,7 +105,7 @@ const PLACES = {js_places};
 const ACTS = {js_activities};
 const DAILY = {js_daily};
 
-const map = L.map("map").setView([37.45,126.89],12);
+const map = L.map("map").setView([37.5665,126.978],12);
 L.tileLayer("https://{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png",{{maxZoom:19}}).addTo(map);
 
 let trailLayer=null, heatLayer=null, actLayer=null, markerLayer=null;
@@ -255,7 +256,7 @@ applyFilter();
 </body>
 </html>'''
 
-out = "/mnt/c/Users/upica/Downloads/home-iot-life-explorer.html"
+out = os.environ.get("LIFE_EXPLORER_OUT", os.path.expanduser("~/Downloads/home-iot-life-explorer.html"))
 with open(out, "w", encoding="utf-8") as f:
     f.write(html)
 print(f"OK: {out} ({len(html)//1024}KB)")

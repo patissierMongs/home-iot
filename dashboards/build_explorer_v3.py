@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Build Life Explorer v3 — full health overlay + dual range slider + speed control."""
 import json
+import os
 
 with open("/tmp/explorer_v3.json") as f:
     D = json.load(f)
@@ -100,7 +101,7 @@ html = (
 'var D=' + DATA_JS + ';\n'
 'D.gps.sort(function(a,b){return a[2]<b[2]?-1:1;});\n'
 '\n'
-'var map=L.map("map").setView([37.45,126.89],12);\n'
+'var map=L.map("map").setView([37.5665,126.978],12);\n'
 'L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{maxZoom:19}).addTo(map);\n'
 '\n'
 'var trail=null,heat=null,actL=null,curMk=null,ptimer=null;\n'
@@ -268,7 +269,7 @@ html = (
 '</script></body></html>\n'
 )
 
-out = "/mnt/c/Users/upica/Downloads/home-iot-life-explorer.html"
+out = os.environ.get("LIFE_EXPLORER_OUT", os.path.expanduser("~/Downloads/home-iot-life-explorer.html"))
 with open(out, "w", encoding="utf-8") as f:
     f.write(html)
 print("OK: " + out + " (" + str(len(html)//1024) + "KB)")

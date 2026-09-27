@@ -2,12 +2,13 @@
 """Samsung Health data export one-shot importer."""
 import json
 import logging
+import os
 import sys
 from pathlib import Path
 
 from home_iot.importers.samsung_health import import_samsung_health
 
-DEFAULT_PATH = Path("/mnt/c/Users/upica/Downloads")
+DEFAULT_PATH = Path(os.environ.get("HOME_IOT_DOWNLOADS", Path.home() / "Downloads"))
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")

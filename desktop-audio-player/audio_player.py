@@ -28,7 +28,7 @@ Run at login (Windows):
   - Or Task Scheduler with trigger "At log on"
 
 Environment variables (all optional, sensible defaults):
-  HOME_IOT_MQTT_HOST        default: 192.168.50.108 (WSL IP from Windows side)
+  HOME_IOT_MQTT_HOST        default: localhost (set to the WSL IP from Windows side)
   HOME_IOT_MQTT_PORT        default: 1883
   HOME_IOT_AUDIO_TOPIC      default: home-iot/audio/speak
   HOME_IOT_ELEVENLABS_KEY   required for TTS mode
@@ -54,7 +54,7 @@ import paho.mqtt.client as mqtt
 
 # ----------------------------- Configuration -----------------------------
 
-MQTT_HOST = os.environ.get("HOME_IOT_MQTT_HOST", "192.168.50.108")
+MQTT_HOST = os.environ.get("HOME_IOT_MQTT_HOST", "localhost")
 MQTT_PORT = int(os.environ.get("HOME_IOT_MQTT_PORT", "1883"))
 MQTT_TOPIC = os.environ.get("HOME_IOT_AUDIO_TOPIC", "home-iot/audio/speak")
 MQTT_STATUS_TOPIC = os.environ.get("HOME_IOT_STATUS_TOPIC", "home-iot/audio/status")

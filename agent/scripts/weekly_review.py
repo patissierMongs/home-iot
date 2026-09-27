@@ -7,12 +7,12 @@ with fresh insights, pattern discoveries, agent quality audit, and knowledge
 base hygiene checks.
 
 Usage:
-  cd /home/yuyu/home-iot/agent
+  cd $HOME/home-iot/agent
   uv run python scripts/weekly_review.py           # generate report
   uv run python scripts/weekly_review.py --dry-run  # print data package, no API call
 
 Schedule with cron:
-  0 23 * * 0  cd /home/yuyu/home-iot/agent && uv run python scripts/weekly_review.py
+  0 23 * * 0  cd $HOME/home-iot/agent && uv run python scripts/weekly_review.py
 """
 from __future__ import annotations
 
